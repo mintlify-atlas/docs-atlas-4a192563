@@ -332,6 +332,85 @@ Animated enigma rotor visualization used in the Hero.
 
 **Location**: `src/components/InteractiveRotor.jsx`
 
+## Home Page Components
+
+### Partners
+
+Technology partner logos displayed in an animated marquee.
+
+**Location**: `src/components/Partners.jsx`
+
+**Key Features**:
+- 40+ partner logos (AWS, Google Cloud, Azure, WordPress, etc.)
+- Infinite marquee scroll animation
+- Hover effects with brand color transitions
+- Pause on hover
+- Partner icons with brand colors
+
+```jsx
+const PARTNERS = [
+  { name: "Amazon Web Services", color: "#FF9900", icon: <svg>...</svg> },
+  { name: "Google Workspace", color: "#4285F4", icon: <svg>...</svg> },
+  // ... 40+ partners
+];
+```
+
+### Problem
+
+Interactive carousel showing customer pain points.
+
+**Location**: `src/components/Problem.jsx`
+
+**Key Features**:
+- Auto-rotating carousel (6 second interval)
+- Text decrypt animation effect
+- Dot navigation with active state
+- Pause on hover
+- In-view detection for animations
+
+```jsx
+const painPoints = t("problem.items"); // From i18n
+const [activeIndex, setActiveIndex] = useState(0);
+const { displayText } = useTextDecrypt(currentPoint.title, isInView);
+```
+
+### HowItWorks
+
+Three-step process explanation with animated cards.
+
+**Location**: `src/components/HowItWorks.jsx`
+
+**Key Features**:
+- Three numbered step cards
+- In-view animations with staggered delays
+- Hover effects with glow
+- Step icons (search, document, activity)
+
+```jsx
+const STEP_ICONS = [
+  { number: "01", icon: <svg>...</svg> }, // Diagnostic
+  { number: "02", icon: <svg>...</svg> }, // Proposal
+  { number: "03", icon: <svg>...</svg> }, // Implementation
+];
+```
+
+### CTAFinal
+
+Final call-to-action section with WhatsApp integration.
+
+**Location**: `src/components/CTAFinal.jsx`
+
+**Key Features**:
+- Text decrypt animation for headline
+- Background blur effects
+- Rotating Enigma logo watermark
+- WhatsApp contact button
+- Contact page link
+
+```jsx
+const waUrl = `https://wa.me/51959561015?text=${t("whatsapp.waText")}`;
+```
+
 ## Component Props Patterns
 
 Most components follow these patterns:
