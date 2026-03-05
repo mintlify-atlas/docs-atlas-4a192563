@@ -1,0 +1,413 @@
+---
+title: 'Email Notification System'
+description: 'Nodemailer configuration and email sending functionality'
+---
+
+## Overview
+
+The backend uses **Nodemailer 7** to send email notifications for form submissions. Each controller sends two emails: one to the admin and one confirmation to the user.
+
+## Email Configuration
+
+The email transporter is configured in `src/mail.js`:
+
+```javascript src/mail.js
+import nodemailer from "nodemailer";
+
+const port = Number(process.env.SMTP_PORT);
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port,
+  secure: port === 465,
+  ...(process.env.SMTP_PASS
+    ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } }
+    : { auth: false, tls: { rejectUnauthorized: false } }),
+});
+
+export async function sendEmail({ to, subject, html }) {
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
+    console.error("Error al enviar email:", error);
+  }
+}
+```
+
+### Configuration Features
+
+- **Dynamic Security**: Automatically uses TLS/SSL when port is 465
+- **Optional Auth**: Supports both authenticated and unauthenticated SMTP
+- **Error Handling**: Logs errors without throwing exceptions
+- **HTML Support**: Sends rich HTML emails
+
+<Note>
+The `sendEmail` function doesn't throw errors to prevent email failures from blocking form submissions.
+</Note>
+
+## Environment Variables
+
+Required SMTP configuration in `.env`:
+
+```bash .env
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+SMTP_FROM="Enigma Developers <noreply@enigma-developers.com>"
+CONTACT_EMAIL="info@enigma-developers.com"
+```
+
+### Variable Descriptions
+
+| Variable | Description | Example |
+|----------|-------------|--------|
+| `SMTP_HOST` | SMTP server hostname | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP port (587 for TLS, 465 for SSL) | `587` |
+| `SMTP_USER` | SMTP authentication username | `user@gmail.com` |
+| `SMTP_PASS` | SMTP authentication password | `app-password-here` |
+| `SMTP_FROM` | Default sender name and email | `Company <no-reply@example.com>` |
+| `CONTACT_EMAIL` | Admin email for notifications | `admin@example.com` |
+
+<Warning>
+For Gmail, use an **App Password** instead of your regular password. Enable 2FA and generate an app-specific password in your Google Account settings.
+</Warning>
+
+## Email Usage in Controllers
+
+Controllers import and use the `sendEmail` function to send notifications.
+
+### Contact Form Emails
+
+From `contactController.js:30-56`:
+
+```javascript src/controllers/contactController.js
+import { sendEmail } from "../mail.js";
+
+// Send notification to admin
+await sendEmail({
+  to: process.env.CONTACT_EMAIL,
+  subject: `Nuevo mensaje de contacto: ${name}`,
+  html: `
+    <h2>Nuevo mensaje de contacto</h2>
+    <p><strong>Nombre:</strong> ${name}</p>
+    <p><strong>Email:</strong> ${email}</p>
+    <p><strong>Teléfono:</strong> ${phone || "No proporcionado"}</p>
+    <p><strong>Empresa:</strong> ${company || "No proporcionada"}</p>
+    <hr />
+    <p><strong>Mensaje:</strong></p>
+    <p>${message}</p>
+  `,
+});
+
+// Send confirmation to user
+await sendEmail({
+  to: email,
+  subject: "Recibimos tu mensaje — Enigma Developers",
+  html: `
+    <h2>Hola ${name},</h2>
+    <p>Recibimos tu mensaje correctamente. Nuestro equipo te responderá en menos de 24 horas.</p>
+    <p>Si necesitas una respuesta más rápida, puedes escribirnos por WhatsApp:</p>
+    <p><a href="https://wa.me/51959561015">+51 959 561 015</a></p>
+    <br />
+    <p>Saludos,<br />Equipo Enigma Developers</p>
+  `,
+});
+```
+
+**Email Flow:**
+1. User submits contact form
+2. Admin receives notification with full details
+3. User receives confirmation with next steps
+
+### Lead Generation Emails
+
+From `leadsController.js:30-63`:
+
+```javascript src/controllers/leadsController.js
+// Notify admin of new diagnostic request
+await sendEmail({
+  to: process.env.CONTACT_EMAIL,
+  subject: `Nueva solicitud de diagnóstico: ${name} — ${company || "Sin empresa"}`,
+  html: `
+    <h2>Nueva solicitud de diagnóstico gratuito</h2>
+    <p><strong>Nombre:</strong> ${name}</p>
+    <p><strong>Email:</strong> ${email}</p>
+    <p><strong>Teléfono:</strong> ${phone || "No proporcionado"}</p>
+    <p><strong>Empresa:</strong> ${company || "No proporcionada"}</p>
+    <hr />
+    <p><strong>Descripción:</strong></p>
+    <p>${message}</p>
+  `,
+});
+
+// Send detailed confirmation to user
+await sendEmail({
+  to: email,
+  subject: "Tu diagnóstico gratuito está en camino — Enigma Developers",
+  html: `
+    <h2>Hola ${name},</h2>
+    <p>Recibimos tu solicitud de diagnóstico gratuito. Nuestro equipo se pondrá en contacto contigo en menos de 24 horas para agendar la sesión.</p>
+    <p><strong>¿Qué incluye el diagnóstico?</strong></p>
+    <ul>
+      <li>Análisis de tu web, servidores y correo</li>
+      <li>Evaluación de seguridad básica</li>
+      <li>Identificación de oportunidades de mejora</li>
+      <li>Propuesta personalizada sin compromiso</li>
+    </ul>
+    <p>Si necesitas una respuesta más rápida:</p>
+    <p><a href="https://wa.me/51959561015">WhatsApp: +51 959 561 015</a></p>
+    <br />
+    <p>Saludos,<br />Equipo Enigma Developers</p>
+  `,
+});
+```
+
+**Email Flow:**
+1. User requests free diagnostic service
+2. Admin receives lead notification
+3. User receives detailed information about what's included
+
+### Complaint Submission Emails
+
+From `complaintsController.js:54-91`:
+
+```javascript src/controllers/complaintsController.js
+const typeLabel = data.type === "reclamo" ? "Reclamo" : "Queja";
+
+// Notify admin with full complaint details
+await sendEmail({
+  to: process.env.CONTACT_EMAIL,
+  subject: `Libro de Reclamaciones — ${typeLabel} #${complaint.id}: ${data.name}`,
+  html: `
+    <h2>Nuevo ${typeLabel} — #${complaint.id}</h2>
+    <h3>Datos del consumidor</h3>
+    <p><strong>Nombre:</strong> ${data.name}</p>
+    <p><strong>Documento:</strong> ${data.documentType} ${data.documentNumber}</p>
+    <p><strong>Domicilio:</strong> ${data.address}</p>
+    <p><strong>Teléfono:</strong> ${data.phone}</p>
+    <p><strong>Email:</strong> ${data.email}</p>
+    ${data.isMinor ? `<p><strong>Menor de edad — Apoderado:</strong> ${data.guardianName}</p>` : ""}
+    <hr />
+    <h3>Detalle del bien o servicio</h3>
+    <p>${data.serviceDescription}</p>
+    ${data.amountClaimed ? `<p><strong>Monto reclamado:</strong> S/ ${data.amountClaimed}</p>` : ""}
+    <hr />
+    <h3>Detalle del ${typeLabel.toLowerCase()}</h3>
+    <p>${data.detail}</p>
+    <h3>Pedido del consumidor</h3>
+    <p>${data.consumerRequest}</p>
+  `,
+});
+
+// Send legal compliance confirmation
+await sendEmail({
+  to: data.email,
+  subject: `Confirmación de ${typeLabel} #${complaint.id} — Enigma Developers`,
+  html: `
+    <h2>Hola ${data.name},</h2>
+    <p>Hemos registrado tu ${typeLabel.toLowerCase()} con el número <strong>#${complaint.id}</strong>.</p>
+    <p>De acuerdo con el Código de Protección y Defensa del Consumidor (Ley N° 29571), daremos respuesta a tu ${typeLabel.toLowerCase()} en un plazo máximo de <strong>30 días calendario</strong>.</p>
+    <br />
+    <p><strong>Proveedor:</strong> Enigma Developers S.A.C.</p>
+    <p><strong>RUC:</strong> 20605632875</p>
+    <br />
+    <p>Saludos,<br />Equipo Enigma Developers</p>
+  `,
+});
+```
+
+<Warning>
+Complaint emails include legal compliance information per Peruvian consumer protection law (Ley N° 29571).
+</Warning>
+
+## Common SMTP Providers
+
+### Gmail
+
+```bash Gmail Configuration
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-16-char-app-password"
+```
+
+**Setup Steps:**
+1. Enable 2-Factor Authentication in Google Account
+2. Go to Security → 2-Step Verification → App passwords
+3. Generate app password for "Mail"
+4. Use 16-character password in `SMTP_PASS`
+
+### SendGrid
+
+```bash SendGrid Configuration
+SMTP_HOST="smtp.sendgrid.net"
+SMTP_PORT=587
+SMTP_USER="apikey"
+SMTP_PASS="your-sendgrid-api-key"
+```
+
+### Amazon SES
+
+```bash Amazon SES Configuration
+SMTP_HOST="email-smtp.us-east-1.amazonaws.com"
+SMTP_PORT=587
+SMTP_USER="your-ses-smtp-username"
+SMTP_PASS="your-ses-smtp-password"
+```
+
+### Mailgun
+
+```bash Mailgun Configuration
+SMTP_HOST="smtp.mailgun.org"
+SMTP_PORT=587
+SMTP_USER="postmaster@your-domain.mailgun.org"
+SMTP_PASS="your-mailgun-smtp-password"
+```
+
+## HTML Email Templates
+
+All emails use inline HTML for better compatibility:
+
+```html Email Template Pattern
+<h2>Main Heading</h2>
+<p><strong>Label:</strong> Value</p>
+<hr />
+<p>Body content with <a href="https://example.com">links</a></p>
+<ul>
+  <li>Bullet point 1</li>
+  <li>Bullet point 2</li>
+</ul>
+<br />
+<p>Signature,<br />Company Name</p>
+```
+
+<Note>
+Inline styles aren't used because the emails are simple text-based HTML that renders well in all email clients.
+</Note>
+
+## Error Handling
+
+Email errors are logged but don't block the response:
+
+```javascript src/mail.js
+export async function sendEmail({ to, subject, html }) {
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
+    console.error("Error al enviar email:", error);
+    // Does not throw - allows form submission to succeed
+  }
+}
+```
+
+**Rationale:**
+- Form submissions should succeed even if email fails
+- Data is saved to database regardless of email status
+- Admins can check logs for email delivery issues
+
+## Testing Email Delivery
+
+### Development Testing
+
+Use **Ethereal Email** for testing without sending real emails:
+
+```javascript Development Transporter
+import nodemailer from "nodemailer";
+
+const testAccount = await nodemailer.createTestAccount();
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.ethereal.email",
+  port: 587,
+  secure: false,
+  auth: {
+    user: testAccount.user,
+    pass: testAccount.pass,
+  },
+});
+
+const info = await transporter.sendMail({ ... });
+console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
+```
+
+### Production Testing
+
+```bash Test Email Command
+curl -X POST http://localhost:4000/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "555-1234",
+    "message": "Test message"
+  }'
+```
+
+Check your inbox at `CONTACT_EMAIL` and `test@example.com`.
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use App Passwords" icon="key">
+    Never use regular passwords for Gmail SMTP
+  </Card>
+  <Card title="Validate Recipients" icon="envelope-circle-check">
+    Ensure email addresses are validated before sending
+  </Card>
+  <Card title="Log Errors" icon="file-lines">
+    Always log email errors for debugging
+  </Card>
+  <Card title="Don't Block Responses" icon="ban">
+    Email failures shouldn't prevent form submissions
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Common Issues
+
+**Authentication Failed**
+```
+Error: Invalid login: 535-5.7.8 Username and Password not accepted
+```
+→ Use app password, not regular password
+
+**Connection Refused**
+```
+Error: connect ECONNREFUSED 127.0.0.1:587
+```
+→ Check `SMTP_HOST` and `SMTP_PORT` values
+
+**TLS/SSL Errors**
+```
+Error: self signed certificate in certificate chain
+```
+→ Add `tls: { rejectUnauthorized: false }` for local SMTP servers
+
+**Rate Limiting**
+```
+Error: 454 4.7.0 Too many login attempts
+```
+→ Gmail limits: 500 emails/day for free accounts
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Endpoints" icon="route" href="/backend/api-endpoints">
+    See how controllers integrate email sending
+  </Card>
+  <Card title="Backend Overview" icon="server" href="/backend/overview">
+    Return to backend architecture overview
+  </Card>
+</CardGroup>

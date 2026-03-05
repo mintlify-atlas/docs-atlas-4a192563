@@ -1,0 +1,166 @@
+---
+title: 'POST /api/leads'
+description: 'Submit a free diagnosis request'
+---
+
+## Endpoint
+
+```
+POST /api/leads
+```
+
+Submits a lead request for a free diagnosis of web infrastructure, servers, and email. This endpoint is specifically used for the diagnosis request form and creates a lead record with source tracking.
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Full name of the person requesting the diagnosis
+  
+  **Validation:** Minimum 2 characters, maximum 100 characters
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Valid email address for the lead
+  
+  **Validation:** Must be a valid email format, maximum 200 characters
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Contact phone number
+  
+  **Validation:** Minimum 6 characters, maximum 30 characters
+</ParamField>
+
+<ParamField body="company" type="string">
+  Company or organization name (optional)
+  
+  **Validation:** Maximum 200 characters
+  
+  **Default:** Empty string
+</ParamField>
+
+<ParamField body="message" type="string" required>
+  Description of the infrastructure or issues to diagnose
+  
+  **Validation:** Minimum 10 characters, maximum 5000 characters
+  
+  **Note:** This field is required for leads (unlike the contact endpoint)
+</ParamField>
+
+## Response
+
+<ResponseField name="message" type="string">
+  Success confirmation message
+</ResponseField>
+
+<ResponseField name="id" type="integer">
+  Auto-generated ID of the created lead record
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.enigmadevelopers.pe/api/leads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Carlos Pérez",
+    "email": "carlos@miempresa.com",
+    "phone": "+51999888777",
+    "company": "Mi Empresa SAC",
+    "message": "Nuestra página web está lenta y queremos mejorar el rendimiento. También tenemos problemas con los correos que van a spam."
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.enigmadevelopers.pe/api/leads', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: 'Carlos Pérez',
+    email: 'carlos@miempresa.com',
+    phone: '+51999888777',
+    company: 'Mi Empresa SAC',
+    message: 'Nuestra página web está lenta y queremos mejorar el rendimiento. También tenemos problemas con los correos que van a spam.'
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+## Example Response
+
+### Success (201 Created)
+
+```json
+{
+  "message": "Solicitud de diagnóstico recibida",
+  "id": 15
+}
+```
+
+### Validation Error (400 Bad Request)
+
+```json
+{
+  "error": "Datos inválidos",
+  "details": {
+    "message": ["String must contain at least 10 character(s)"],
+    "email": ["Invalid email"]
+  }
+}
+```
+
+### Server Error (500 Internal Server Error)
+
+```json
+{
+  "error": "Error al procesar la solicitud"
+}
+```
+
+## Behavior
+
+When a diagnosis request is successfully submitted:
+
+1. **Database Record**: Creates a new lead in the `leads` table with `source: "diagnosis"` and `status: "new"`
+2. **Admin Notification**: Sends an email to the company with the subject "Nueva solicitud de diagnóstico: {name} — {company}"
+3. **User Confirmation**: Sends a detailed email explaining what's included in the free diagnosis:
+   - Web, server, and email analysis
+   - Basic security evaluation
+   - Improvement opportunities identification
+   - Personalized proposal with no commitment
+4. **Follow-up Information**: The confirmation email includes WhatsApp contact for faster response
+
+## Lead Source Tracking
+
+All leads created through this endpoint are automatically tagged with:
+- `source: "diagnosis"`
+- `status: "new"`
+
+This allows the sales team to track which leads came from the diagnosis request form.
+
+## Rate Limiting
+
+This endpoint is protected by rate limiting:
+- **Limit:** 50 requests per 15-minute window per IP address
+- **Response when exceeded:** `429 Too Many Requests`
+
+```json
+{
+  "error": "Demasiadas solicitudes, intenta de nuevo más tarde."
+}
+```
+
+## Implementation Reference
+
+Source files:
+- Route: `src/routes/leads.js:6`
+- Controller: `src/controllers/leadsController.js:13-70`
+- Validation schema: `src/controllers/leadsController.js:5-11`

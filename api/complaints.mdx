@@ -1,0 +1,251 @@
+---
+title: 'POST /api/complaints'
+description: 'Submit a complaint or claim (INDECOPI compliance)'
+---
+
+## Endpoint
+
+```
+POST /api/complaints
+```
+
+Submits a consumer complaint or claim through the electronic complaints book (Libro de Reclamaciones). This endpoint complies with Peruvian consumer protection law (Ley N° 29571) and INDECOPI requirements.
+
+## Request Body
+
+### Consumer Information
+
+<ParamField body="name" type="string" required>
+  Full legal name of the consumer
+  
+  **Validation:** Minimum 2 characters, maximum 200 characters
+</ParamField>
+
+<ParamField body="documentType" type="enum" required>
+  Type of identification document
+  
+  **Allowed values:** `"DNI"`, `"CE"`, `"PASSPORT"`
+  
+  - **DNI**: Documento Nacional de Identidad (Peru)
+  - **CE**: Carné de Extranjería
+  - **PASSPORT**: International passport
+</ParamField>
+
+<ParamField body="documentNumber" type="string" required>
+  Identification document number
+  
+  **Validation:** Minimum 4 characters, maximum 30 characters
+</ParamField>
+
+<ParamField body="address" type="string" required>
+  Physical address of the consumer
+  
+  **Validation:** Minimum 5 characters, maximum 500 characters
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Contact phone number
+  
+  **Validation:** Minimum 6 characters, maximum 30 characters
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Valid email address
+  
+  **Validation:** Must be a valid email format, maximum 200 characters
+</ParamField>
+
+### Minor Guardian Information
+
+<ParamField body="isMinor" type="boolean">
+  Indicates if the consumer is a minor (under 18)
+  
+  **Default:** `false`
+</ParamField>
+
+<ParamField body="guardianName" type="string">
+  Full name of legal guardian or representative (required if `isMinor` is `true`)
+  
+  **Validation:** Maximum 200 characters
+  
+  **Default:** Empty string
+</ParamField>
+
+### Complaint Details
+
+<ParamField body="type" type="enum" required>
+  Type of consumer report
+  
+  **Allowed values:** `"reclamo"`, `"queja"`
+  
+  - **reclamo** (Claim): Complaint related to products or services
+  - **queja** (Grievance): Complaint about customer service or attention
+</ParamField>
+
+<ParamField body="serviceDescription" type="string" required>
+  Description of the product or service being disputed
+  
+  **Validation:** Minimum 10 characters, maximum 5000 characters
+</ParamField>
+
+<ParamField body="amountClaimed" type="number">
+  Monetary amount being claimed (optional, only for "reclamo")
+  
+  **Validation:** Must be a positive number
+  
+  **Format:** Decimal with up to 2 decimal places
+</ParamField>
+
+<ParamField body="detail" type="string" required>
+  Detailed explanation of the complaint or claim
+  
+  **Validation:** Minimum 10 characters, maximum 5000 characters
+</ParamField>
+
+<ParamField body="consumerRequest" type="string" required>
+  What the consumer is requesting or expecting as resolution
+  
+  **Validation:** Minimum 10 characters, maximum 5000 characters
+</ParamField>
+
+## Response
+
+<ResponseField name="message" type="string">
+  Success confirmation message
+</ResponseField>
+
+<ResponseField name="id" type="integer">
+  Unique complaint ID for tracking purposes
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.enigmadevelopers.pe/api/complaints \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Juan Carlos Rodríguez López",
+    "documentType": "DNI",
+    "documentNumber": "12345678",
+    "address": "Av. Arequipa 1234, Miraflores, Lima",
+    "phone": "+51987654321",
+    "email": "juan.rodriguez@example.com",
+    "isMinor": false,
+    "type": "reclamo",
+    "serviceDescription": "Servicio de desarrollo de sitio web corporativo contratado en enero 2026",
+    "amountClaimed": 3500.00,
+    "detail": "El sitio web fue entregado con errores de programación y no cumple con las especificaciones acordadas en el contrato",
+    "consumerRequest": "Solicito la corrección de todos los errores reportados sin costo adicional y compensación por el retraso"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.enigmadevelopers.pe/api/complaints', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: 'Juan Carlos Rodríguez López',
+    documentType: 'DNI',
+    documentNumber: '12345678',
+    address: 'Av. Arequipa 1234, Miraflores, Lima',
+    phone: '+51987654321',
+    email: 'juan.rodriguez@example.com',
+    isMinor: false,
+    type: 'reclamo',
+    serviceDescription: 'Servicio de desarrollo de sitio web corporativo contratado en enero 2026',
+    amountClaimed: 3500.00,
+    detail: 'El sitio web fue entregado con errores de programación y no cumple con las especificaciones acordadas en el contrato',
+    consumerRequest: 'Solicito la corrección de todos los errores reportados sin costo adicional y compensación por el retraso'
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+## Example Response
+
+### Success (201 Created)
+
+```json
+{
+  "message": "Registro enviado correctamente",
+  "id": 123
+}
+```
+
+### Validation Error (400 Bad Request)
+
+```json
+{
+  "error": "Datos inválidos",
+  "details": {
+    "documentType": ["Invalid enum value. Expected 'DNI' | 'CE' | 'PASSPORT', received 'CI'"],
+    "detail": ["String must contain at least 10 character(s)"]
+  }
+}
+```
+
+### Server Error (500 Internal Server Error)
+
+```json
+{
+  "error": "Error al procesar el registro"
+}
+```
+
+## Legal Compliance
+
+### INDECOPI Requirements
+
+This endpoint implements the electronic complaints book as required by:
+
+- **Código de Protección y Defensa del Consumidor (Ley N° 29571)**
+- **Decreto Supremo N° 011-2011-PCM**
+
+### Response Timeline
+
+According to Peruvian law, the company must respond to all complaints within **30 calendar days**. The confirmation email sent to the consumer includes this information.
+
+### Company Information
+
+All confirmation emails include the provider's legal information:
+- **Company:** Enigma Developers S.A.C.
+- **RUC:** 20605632875
+
+## Behavior
+
+When a complaint is successfully submitted:
+
+1. **Database Record**: Creates a new complaint with `status: "pending"` and `read: false`
+2. **Admin Notification**: Sends detailed email to company with all complaint information and unique ID
+3. **User Confirmation**: Sends legal confirmation email to consumer with:
+   - Unique complaint ID for tracking
+   - 30-day response timeline
+   - Company legal information
+4. **Email Subject Format**: Uses pattern "Libro de Reclamaciones — {Reclamo|Queja} #{id}: {name}"
+
+## Rate Limiting
+
+This endpoint is protected by rate limiting:
+- **Limit:** 50 requests per 15-minute window per IP address
+- **Response when exceeded:** `429 Too Many Requests`
+
+```json
+{
+  "error": "Demasiadas solicitudes, intenta de nuevo más tarde."
+}
+```
+
+## Implementation Reference
+
+Source files:
+- Route: `src/routes/complaints.js:6`
+- Controller: `src/controllers/complaintsController.js:21-98`
+- Validation schema: `src/controllers/complaintsController.js:5-19`

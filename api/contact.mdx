@@ -1,0 +1,154 @@
+---
+title: 'POST /api/contact'
+description: 'Submit a general contact inquiry'
+---
+
+## Endpoint
+
+```
+POST /api/contact
+```
+
+Submits a general contact message to Enigma Developers. This endpoint creates a contact record in the database and sends email notifications to both the company and the user.
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Full name of the person contacting
+  
+  **Validation:** Minimum 2 characters, maximum 100 characters
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Valid email address for the contact
+  
+  **Validation:** Must be a valid email format, maximum 200 characters
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Contact phone number
+  
+  **Validation:** Minimum 6 characters, maximum 30 characters
+</ParamField>
+
+<ParamField body="company" type="string">
+  Company or organization name (optional)
+  
+  **Validation:** Maximum 200 characters
+  
+  **Default:** Empty string
+</ParamField>
+
+<ParamField body="message" type="string">
+  Message or inquiry details (optional)
+  
+  **Validation:** Maximum 5000 characters
+  
+  **Default:** Empty string
+</ParamField>
+
+## Response
+
+<ResponseField name="message" type="string">
+  Success confirmation message
+</ResponseField>
+
+<ResponseField name="id" type="integer">
+  Auto-generated ID of the created contact record
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.enigmadevelopers.pe/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "María González",
+    "email": "maria@example.com",
+    "phone": "+51987654321",
+    "company": "Tech Solutions SAC",
+    "message": "Necesito información sobre sus servicios de desarrollo web"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.enigmadevelopers.pe/api/contact', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: 'María González',
+    email: 'maria@example.com',
+    phone: '+51987654321',
+    company: 'Tech Solutions SAC',
+    message: 'Necesito información sobre sus servicios de desarrollo web'
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+## Example Response
+
+### Success (201 Created)
+
+```json
+{
+  "message": "Mensaje enviado correctamente",
+  "id": 42
+}
+```
+
+### Validation Error (400 Bad Request)
+
+```json
+{
+  "error": "Datos inválidos",
+  "details": {
+    "email": ["Invalid email"],
+    "phone": ["String must contain at least 6 character(s)"]
+  }
+}
+```
+
+### Server Error (500 Internal Server Error)
+
+```json
+{
+  "error": "Error al procesar el mensaje"
+}
+```
+
+## Behavior
+
+When a contact form is successfully submitted:
+
+1. **Database Record**: Creates a new record in the `contacts` table
+2. **Admin Notification**: Sends an email to the company with all contact details
+3. **User Confirmation**: Sends a confirmation email to the user acknowledging receipt
+4. **Auto-response**: The confirmation email includes company contact information and WhatsApp link for urgent inquiries
+
+## Rate Limiting
+
+This endpoint is protected by rate limiting:
+- **Limit:** 50 requests per 15-minute window per IP address
+- **Response when exceeded:** `429 Too Many Requests`
+
+```json
+{
+  "error": "Demasiadas solicitudes, intenta de nuevo más tarde."
+}
+```
+
+## Implementation Reference
+
+Source files:
+- Route: `src/routes/contact.js:6`
+- Controller: `src/controllers/contactController.js:13-63`
+- Validation schema: `src/controllers/contactController.js:5-11`

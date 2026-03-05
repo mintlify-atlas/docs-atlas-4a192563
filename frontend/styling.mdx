@@ -1,0 +1,508 @@
+---
+title: Styling & Theming
+description: Tailwind CSS custom theme, color palette, and animations
+---
+
+# Styling & Theming
+
+The Enigma Developers frontend uses **Tailwind CSS 4** with a custom theme that defines the brand's dark, industrial aesthetic inspired by enigma machines.
+
+## Tailwind Configuration
+
+The entire theme is defined in `src/index.css` using Tailwind's `@theme` directive:
+
+```css
+@import "tailwindcss";
+
+@theme {
+  /* Color palette */
+  --color-carbon: #1C1C1E;
+  --color-carbon2: #242426;
+  --color-carbon3: #2C2C2E;
+  --color-cream: #F0EDE6;
+  --color-cream2: #B8B4AC;
+  --color-red: #C44A20;
+  --color-red2: #9A3A18;
+  --color-metal: #B8B0A4;
+  --color-line: #2A2A2C;
+  --color-nav: #141416;
+
+  /* Typography */
+  --font-heading: "Playfair Display", serif;
+  --font-body: "DM Sans", sans-serif;
+  --font-mono: "DM Mono", monospace;
+
+  /* Custom animations */
+  --animate-marquee-left: marquee-left 40s linear infinite;
+  --animate-marquee-right: marquee-right 40s linear infinite;
+  --animate-rotor-spin: rotor-spin 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  --animate-rotor-idle: rotor-idle 20s linear infinite;
+  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
+  --animate-gear-cw: gear-cw 18s linear infinite;
+  --animate-gear-ccw: gear-ccw 18s linear infinite;
+}
+```
+
+## Color Palette
+
+The design uses a carefully curated dark palette with accent colors:
+
+<Tabs>
+  <Tab title="Carbon Grays">
+    **Background colors** with subtle variations:
+    
+    <CodeGroup>
+    ```css Primary Background
+    --color-carbon: #1C1C1E
+    ```
+    
+    ```css Secondary Background
+    --color-carbon2: #242426
+    ```
+    
+    ```css Tertiary Background
+    --color-carbon3: #2C2C2E
+    ```
+    
+    ```css Navigation Background
+    --color-nav: #141416
+    ```
+    
+    ```css Border Lines
+    --color-line: #2A2A2C
+    ```
+    </CodeGroup>
+    
+    **Usage**:
+    ```jsx
+    <div className="bg-carbon">Main background</div>
+    <div className="bg-carbon2">Card background</div>
+    <div className="bg-carbon3">Elevated card</div>
+    <div className="border-line">Bordered element</div>
+    ```
+  </Tab>
+  
+  <Tab title="Cream Whites">
+    **Text colors** for contrast on dark backgrounds:
+    
+    <CodeGroup>
+    ```css Primary Text
+    --color-cream: #F0EDE6
+    ```
+    
+    ```css Secondary Text
+    --color-cream2: #B8B4AC
+    ```
+    </CodeGroup>
+    
+    **Usage**:
+    ```jsx
+    <h1 className="text-cream">Primary heading</h1>
+    <p className="text-cream2">Secondary text</p>
+    ```
+  </Tab>
+  
+  <Tab title="Red Accents">
+    **Brand accent colors** for CTAs and highlights:
+    
+    <CodeGroup>
+    ```css Primary Red
+    --color-red: #C44A20
+    ```
+    
+    ```css Darker Red (Hover)
+    --color-red2: #9A3A18
+    ```
+    </CodeGroup>
+    
+    **Usage**:
+    ```jsx
+    <button className="bg-red hover:bg-red2 text-cream">
+      Call to Action
+    </button>
+    <span className="text-red">Highlighted text</span>
+    ```
+  </Tab>
+  
+  <Tab title="Metal">
+    **Metallic accent** for decorative elements:
+    
+    ```css
+    --color-metal: #B8B0A4
+    ```
+    
+    Used for rotor indicators and mechanical UI elements in the enigma machine aesthetic.
+  </Tab>
+</Tabs>
+
+## Typography
+
+The site uses three font families for hierarchy:
+
+### Font Stack
+
+```css
+--font-heading: "Playfair Display", serif;
+--font-body: "DM Sans", sans-serif;
+--font-mono: "DM Mono", monospace;
+```
+
+### Font Application
+
+Fonts are applied automatically via CSS:
+
+```css
+@layer base {
+  body {
+    font-family: var(--font-body);
+    font-weight: 300;
+    color: var(--color-cream);
+    background-color: var(--color-carbon);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 400;
+  }
+}
+```
+
+### Usage in Components
+
+```jsx
+<h1 className="font-heading text-5xl text-cream">
+  Heading with Playfair Display
+</h1>
+
+<p className="font-body text-base text-cream2">
+  Body text with DM Sans
+</p>
+
+<code className="font-mono text-xs text-red">
+  Monospace for code or labels
+</code>
+```
+
+<Note>
+  The fonts are loaded from Google Fonts via `<link>` tags in the HTML (see `index.html`).
+</Note>
+
+## Custom Animations
+
+The theme includes several custom animations defined with keyframes:
+
+### Marquee Animation
+
+For scrolling client logos:
+
+```css
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+```
+
+**Usage**:
+```jsx
+<div className="animate-marquee-left">
+  {/* Content scrolls left */}
+</div>
+```
+
+### Rotor Animations
+
+For enigma rotor effects:
+
+```css
+@keyframes rotor-spin {
+  from { transform: rotate(-180deg); opacity: 0; }
+  to { transform: rotate(0deg); opacity: 1; }
+}
+
+@keyframes rotor-idle {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+```
+
+**Usage**:
+```jsx
+<div className="animate-rotor-spin">
+  {/* Spins in from -180deg */}
+</div>
+
+<div className="animate-rotor-idle">
+  {/* Continuously rotates */}
+</div>
+```
+
+### Glow Pulse
+
+For glowing effects on featured elements:
+
+```css
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(196,74,32,0.2); }
+  50% { box-shadow: 0 0 40px rgba(196,74,32,0.4); }
+}
+```
+
+**Usage**:
+```jsx
+<div className="animate-glow-pulse">
+  {/* Pulsing red glow effect */}
+</div>
+```
+
+### Gear Animations
+
+For mechanical gear decorations:
+
+```css
+@keyframes gear-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes gear-ccw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+```
+
+**With Pause on Hover**:
+
+```css
+.gear-spin { animation: gear-cw 18s linear infinite; }
+.gear-spin-reverse { animation: gear-ccw 18s linear infinite; }
+
+.gear-wrapper:hover .gear-spin,
+.gear-wrapper:hover .gear-spin-reverse {
+  animation-play-state: paused;
+}
+```
+
+**Usage**:
+```jsx
+<div className="gear-wrapper">
+  <img className="gear-spin" src="gear1.svg" />
+  <img className="gear-spin-reverse" src="gear2.svg" />
+</div>
+```
+
+## Special Effects
+
+### Client Logo Hover Effect
+
+Custom mask-based color transition:
+
+```css
+.client-logo-wrap {
+  position: relative;
+}
+
+.client-logo-wrap img {
+  filter: grayscale(1) brightness(2);
+  opacity: 0.45;
+  transition: opacity 300ms;
+}
+
+.client-logo-color {
+  position: absolute;
+  inset: 0;
+  background-color: #C44A20;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  opacity: 0;
+  transition: opacity 300ms;
+  pointer-events: none;
+}
+
+a:hover .client-logo-wrap img {
+  opacity: 0;
+}
+
+a:hover .client-logo-color {
+  opacity: 1;
+}
+```
+
+**Usage**:
+```jsx
+<a href="#">
+  <div className="client-logo-wrap">
+    <img src="logo.png" alt="Client" />
+    <div className="client-logo-color" 
+         style={{ WebkitMaskImage: 'url(logo.png)', maskImage: 'url(logo.png)' }} />
+  </div>
+</a>
+```
+
+**Effect**: Grayscale logos transition to brand red on hover.
+
+### Dot Grid Background
+
+Radial dot pattern for depth:
+
+```jsx
+function DotGrid() {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: "radial-gradient(circle, #F0EDE6 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+                      w-[600px] h-[600px] bg-carbon2/60 rounded-full blur-[180px]" />
+    </div>
+  );
+}
+```
+
+## Responsive Design
+
+Tailwind's responsive utilities are used throughout:
+
+```jsx
+<h1 className="text-[clamp(34px,4.5vw,56px)] lg:text-5xl">
+  Fluid typography
+</h1>
+
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  Responsive grid
+</div>
+
+<div className="px-6 lg:px-10">
+  Responsive padding
+</div>
+```
+
+**Breakpoints** (Tailwind defaults):
+- `sm`: 640px
+- `md`: 768px
+- `lg`: 1024px
+- `xl`: 1280px
+- `2xl`: 1536px
+
+## Base Styles
+
+Global styles are defined in the `@layer base`:
+
+```css
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-weight: 300;
+    color: var(--color-cream);
+    background-color: var(--color-carbon);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 400;
+  }
+}
+```
+
+**Effects**:
+- Smooth scrolling for anchor links
+- Font smoothing for better rendering
+- Default body font and colors
+- Heading font family override
+
+## Design Tokens
+
+Common utility combinations:
+
+<CodeGroup>
+```jsx Card Styles
+<div className="bg-carbon3 border border-line hover:border-red/20 p-6">
+  Card with hover effect
+</div>
+```
+
+```jsx Button Primary
+<button className="px-7 py-4 bg-red hover:bg-red2 text-cream font-mono text-xs 
+                   uppercase tracking-[0.25em] transition-all duration-300">
+  Primary Button
+</button>
+```
+
+```jsx Button Secondary
+<button className="px-7 py-4 border border-line hover:border-red/40 
+                   text-cream2 hover:text-red font-mono text-xs uppercase 
+                   tracking-[0.25em] transition-all duration-300">
+  Secondary Button
+</button>
+```
+
+```jsx Section Tag
+<span className="font-mono text-xs tracking-[0.42em] text-red uppercase">
+  Section Tag
+</span>
+```
+</CodeGroup>
+
+## Accessing Custom Theme in Tailwind
+
+Use the custom colors in any Tailwind utility:
+
+```jsx
+<div className="bg-carbon border-line text-cream">
+  <h1 className="text-red">Heading</h1>
+  <p className="text-cream2">Paragraph</p>
+</div>
+```
+
+<Warning>
+  These custom colors are only available because they're defined in `@theme`. They won't work in a separate `tailwind.config.js` file without importing them.
+</Warning>
+
+## Animation Control
+
+Control animation states:
+
+```css
+/* Pause marquee on hover */
+.group:hover .animate-marquee-left,
+.group:hover .animate-marquee-right {
+  animation-play-state: paused;
+}
+```
+
+```jsx
+<div className="group">
+  <div className="animate-marquee-left">
+    {/* Pauses when parent is hovered */}
+  </div>
+</div>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="cube" href="/frontend/components">
+    See how components use the theme
+  </Card>
+  <Card title="Overview" icon="book" href="/frontend/overview">
+    Return to frontend overview
+  </Card>
+</CardGroup>

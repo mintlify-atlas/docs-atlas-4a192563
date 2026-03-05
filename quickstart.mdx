@@ -1,80 +1,231 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Get Enigma Developers web application running locally in minutes'
 ---
 
-## Get started in three steps
+## Prerequisites
 
-Get your documentation site running locally and make your first customization.
+Before you begin, ensure you have the following installed:
 
-### Step 1: Set up your local environment
+- **Docker** and **Docker Compose** (recommended)
+- **Node.js 20+** and **npm** (for local development without Docker)
+- **PostgreSQL 16** (only if running without Docker)
+- **Git**
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Quick Start with Docker
 
-### Step 2: Deploy your changes
+<Steps>
+  <Step title="Clone the repository">
+    Clone the Enigma Developers repository to your local machine:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```bash
+    git clone https://github.com/sdelsolar90/webenigma.git
+    cd webenigma
+    ```
+  </Step>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+  <Step title="Configure environment variables">
+    Copy the example environment file and configure your settings:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    cp .env.example .env
+    ```
 
-### Step 3: Go live
+    Edit the `.env` file with your actual credentials:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```bash .env
+    NODE_ENV=development
 
-## Next steps
+    BACKEND_PORT=4000
 
-Now that you have your docs running, explore these key features:
+    POSTGRES_DB=enigma
+    POSTGRES_USER=enigma_user
+    POSTGRES_PASSWORD=change_me_secure_password
+    DATABASE_URL=postgresql://enigma_user:change_me_secure_password@db:5432/enigma
+
+    SMTP_HOST=smtp.gmail.com
+    SMTP_PORT=587
+    SMTP_USER=enigma@enigmasac.com
+    SMTP_PASS=your_app_password_here
+    SMTP_FROM="Enigma Developers <enigma@enigmasac.com>"
+    CONTACT_EMAIL=enigma@enigmasac.com
+
+    VITE_API_URL=http://localhost/api
+    CORS_ORIGIN=http://localhost
+
+    NGINX_PORT=80
+    ```
+
+    <Note>
+      Make sure to update `POSTGRES_PASSWORD`, `SMTP_USER`, `SMTP_PASS`, and `CONTACT_EMAIL` with your actual values.
+    </Note>
+  </Step>
+
+  <Step title="Start the application">
+    Launch all services using Docker Compose:
+
+    ```bash
+    docker compose up -d
+    ```
+
+    This command will:
+    - Build the frontend, backend, and nginx containers
+    - Start a PostgreSQL 16 database
+    - Set up the reverse proxy configuration
+    - Expose the application on port 80
+  </Step>
+
+  <Step title="Run database migrations">
+    Initialize the database schema with Prisma:
+
+    ```bash
+    docker compose exec backend npx prisma migrate dev
+    ```
+
+    This creates the necessary tables for contacts, leads, complaints, posts, and categories.
+  </Step>
+
+  <Step title="Access the application">
+    Open your browser and navigate to:
+
+    ```
+    http://localhost
+    ```
+
+    The Enigma Developers website should now be running!
+  </Step>
+</Steps>
+
+## Alternative: Local Development Setup
+
+If you prefer to run the services without Docker, follow these steps:
+
+<CodeGroup>
+
+```bash Backend Setup
+# Terminal 1 - Backend
+cd backend
+npm install
+npx prisma migrate dev
+npm run dev
+```
+
+```bash Frontend Setup
+# Terminal 2 - Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+</CodeGroup>
+
+<Warning>
+  For local development, you'll need to:
+  1. Have PostgreSQL 16 running locally
+  2. Update `DATABASE_URL` in your `.env` file to point to your local PostgreSQL instance
+  3. The frontend will run on `http://localhost:5173` and backend on `http://localhost:4000`
+</Warning>
+
+### Local Development Configuration
+
+When running locally without Docker, update your `.env` file:
+
+```bash .env
+DATABASE_URL=postgresql://enigma_user:your_password@localhost:5432/enigma
+VITE_API_URL=http://localhost:4000/api
+CORS_ORIGIN=http://localhost:5173
+```
+
+## Verifying the Installation
+
+Once your application is running, verify that all services are working:
+
+<Steps>
+  <Step title="Check backend health">
+    ```bash
+    curl http://localhost/api/health
+    ```
+
+    Expected response:
+    ```json
+    {"status":"ok"}
+    ```
+  </Step>
+
+  <Step title="Check running containers">
+    If using Docker, verify all containers are running:
+
+    ```bash
+    docker compose ps
+    ```
+
+    You should see three containers running:
+    - `enigmasac-frontend` (port 4051:80)
+    - `enigmasac-backend` (port 4050:4000)
+    - `enigmasac-db` (PostgreSQL 16)
+  </Step>
+
+  <Step title="Access Prisma Studio (optional)">
+    To view and manage your database:
+
+    ```bash
+    # With Docker
+    docker compose exec backend npx prisma studio
+
+    # Local development
+    cd backend && npx prisma studio
+    ```
+
+    Prisma Studio will open at `http://localhost:5555`
+  </Step>
+</Steps>
+
+## Next Steps
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Learn about the system architecture and technology stack
+  </Card>
+  <Card title="API Endpoints" icon="code" href="/api/contact">
+    Explore the available API endpoints
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Troubleshooting
+
+### Database Connection Issues
+
+If you see database connection errors:
+
+```bash
+# Check if PostgreSQL is running
+docker compose ps db
+
+# View database logs
+docker compose logs db
+
+# Restart the database
+docker compose restart db
+```
+
+### Port Already in Use
+
+If port 80 is already in use, you can change the nginx port in `.env`:
+
+```bash
+NGINX_PORT=8080
+```
+
+Then restart the services:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+### SMTP Configuration
+
+For Gmail SMTP, you'll need to:
+1. Enable 2-factor authentication on your Google account
+2. Generate an App Password at https://myaccount.google.com/apppasswords
+3. Use the App Password in your `SMTP_PASS` variable

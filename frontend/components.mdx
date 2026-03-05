@@ -1,0 +1,356 @@
+---
+title: React Components
+description: Documentation of key React components in the Enigma Developers frontend
+---
+
+# React Components
+
+This page documents the main React components used throughout the application, with real code examples from the source.
+
+## Layout Components
+
+### Navbar
+
+The main navigation component with sticky positioning and language switching.
+
+**Location**: `src/components/Navbar.jsx`
+
+**Key Features**:
+- Sticky header that changes appearance on scroll
+- Language switcher (ES/EN)
+- Responsive design (desktop menu only)
+- Integration with LocaleLink for multi-language routing
+
+**Usage Example**:
+
+```jsx
+import Navbar from "./components/Navbar.jsx";
+
+function App() {
+  return (
+    <>
+      <Navbar />
+      <main>{/* page content */}</main>
+    </>
+  );
+}
+```
+
+**Component Structure**:
+
+```jsx
+export default function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+  const { lang, t, setLang } = useT();
+
+  // Navigation items
+  const NAV_KEYS = [
+    { routeKey: "home", labelKey: "nav.home" },
+    { routeKey: "services", labelKey: "nav.services" },
+    { routeKey: "plans", labelKey: "nav.plans" },
+    { routeKey: "clients", labelKey: "nav.clients" },
+    { routeKey: "about", labelKey: "nav.about" },
+    { routeKey: "contact", labelKey: "nav.contact" },
+  ];
+
+  return (
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 
+      ${scrolled ? "bg-nav/95 backdrop-blur-lg border-b border-line" : "bg-transparent"}`}>
+      {/* Logo, navigation items, language switcher, CTA button */}
+    </nav>
+  );
+}
+```
+
+### Footer
+
+Comprehensive footer with multiple sections and social links.
+
+**Location**: `src/components/Footer.jsx`
+
+**Key Features**:
+- Four-column layout (logo/tagline, services, company, contact)
+- Social media icons (WhatsApp, Facebook, Instagram, GitHub)
+- Multi-language support
+- Company information and legal links
+
+**Footer Sections**:
+
+```jsx
+// Service routes for footer links
+const SERVICE_ROUTES = [
+  "/servicios#desarrollo-web",
+  "/servicios#servidores-cloud",
+  "/servicios#correo",
+  "/servicios#ciberseguridad",
+  "/servicios#automatizacion",
+  "/servicios#agentes-ia",
+  "/servicios#consultoria",
+];
+
+const COMPANY_ROUTES = ["/nosotros", "/clientes", "/planes", "/contacto"];
+```
+
+### MobileBottomNav
+
+Mobile-only bottom navigation bar.
+
+**Location**: `src/components/MobileBottomNav.jsx`
+
+## Hero & Landing Components
+
+### Hero
+
+Main hero section with animated headline and interactive rotor.
+
+**Location**: `src/components/Hero.jsx`
+
+**Key Features**:
+- Staged animation sequence with useEffect
+- Text decryption effect using custom `useTextDecrypt` hook
+- Interactive rotor component
+- Statistics section with motion animations
+- Responsive grid layout
+
+**Animation Stages**:
+
+```jsx
+const [stage, setStage] = useState(0);
+
+useEffect(() => {
+  const t1 = setTimeout(() => setStage(1), 300);   // Show rotor
+  const t2 = setTimeout(() => setStage(2), 800);   // Show tag
+  const t3 = setTimeout(() => setStage(3), 1200);  // Decrypt headline
+  const t4 = setTimeout(() => setStage(4), 2500);  // Show description
+  const t5 = setTimeout(() => setStage(5), 3000);  // Show CTAs
+  const t6 = setTimeout(() => setStage(6), 3500);  // Show stats
+  return () => [t1, t2, t3, t4, t5, t6].forEach(clearTimeout);
+}, []);
+```
+
+**Text Decryption Effect**:
+
+```jsx
+const headline = t("hero.headline");
+const { displayText } = useTextDecrypt(headline, stage >= 3);
+
+// Renders with italic word highlighted
+{displayText.split(italicWord).map((part, i) =>
+  i === 0 ? (
+    <span key={i}>{part}</span>
+  ) : (
+    <span key={i}>
+      <em className="italic">{italicWord}</em>
+      {part}
+    </span>
+  )
+)}
+```
+
+### Services
+
+Interactive service selector with rotating wheel interface.
+
+**Location**: `src/components/Services.jsx`
+
+**Key Features**:
+- Circular rotor with 7 service icons
+- Interactive selection with smooth rotation
+- Motion-based animations
+- Responsive sizing (mobile vs desktop)
+- AnimatePresence for smooth transitions
+
+**Service Configuration**:
+
+```jsx
+const SERVICES = [
+  { id: "desarrollo-web", icon: <CodeIcon /> },
+  { id: "servidores-cloud", icon: <ServerIcon /> },
+  { id: "correo", icon: <MailIcon /> },
+  { id: "ciberseguridad", icon: <ShieldIcon /> },
+  { id: "automatizacion", icon: <AutomationIcon /> },
+  { id: "agentes-ia", icon: <AIIcon /> },
+  { id: "consultoria", icon: <ConsultingIcon /> },
+];
+
+const COUNT = SERVICES.length;
+const STEP = 360 / COUNT; // 51.43 degrees per service
+```
+
+**Rotation Logic**:
+
+```jsx
+const ringRotation = useMotionValue(0);
+const springRotation = useSpring(ringRotation, { damping: 25, stiffness: 150 });
+
+function selectService(newIndex) {
+  let delta = newIndex - prevActive.current;
+  // Handle wraparound for shortest rotation path
+  if (delta > COUNT / 2) delta -= COUNT;
+  if (delta < -COUNT / 2) delta += COUNT;
+  ringRotation.set(ringRotation.get() - delta * STEP);
+  prevActive.current = newIndex;
+  setActive(newIndex);
+}
+```
+
+### Plans
+
+Pricing plans display with 3D tilt effects.
+
+**Location**: `src/components/Plans.jsx`
+
+**Key Features**:
+- Three plan cards (Essential, Pro, AI)
+- 3D tilt effect on hover using `use3DTilt` hook
+- Highlighted "most popular" plan
+- Glow animation on featured plan
+- Feature list with checkmarks
+
+**Plan Card with 3D Tilt**:
+
+```jsx
+function PlanCard({ plan, meta, index, t }) {
+  const { ref: tiltRef, style: tiltStyle, handlers } = use3DTilt({ 
+    max: 5, 
+    scale: 1.02 
+  });
+
+  return (
+    <motion.div
+      ref={tiltRef}
+      style={{ ...tiltStyle, transformPerspective: 800 }}
+      {...handlers}
+      className={`relative p-8 flex flex-col h-full ${
+        meta.highlighted
+          ? "bg-carbon border-2 border-red shadow-2xl animate-[glow-pulse_3s_ease-in-out_infinite]"
+          : "bg-carbon3 border border-line hover:border-red/20"
+      }`}
+    >
+      {/* Plan content */}
+    </motion.div>
+  );
+}
+```
+
+## Branding Components
+
+### EnigmaLogo
+
+Custom SVG logo components with isotope and logotype variants.
+
+**Location**: `src/components/EnigmaLogo.jsx`
+
+**Exports**:
+
+<Tabs>
+  <Tab title="EnigmaIsotipo">
+    ```jsx
+    export function EnigmaIsotipo({ size = 40, variant = "dark", className = "" }) {
+      const innerFill = variant === "light" ? "#F0EDE6" 
+                      : variant === "mono" ? "#000000" 
+                      : "#1C1C1E";
+
+      const contacts = [0, 18, 36, 90, 108, 162, 180, 198, 216, 270, 288, 324, 342];
+
+      return (
+        <svg width={size} height={size} viewBox="0 0 120 120">
+          {/* Outer circle */}
+          <circle cx="60" cy="60" r="54" stroke="#F0EDE6" strokeWidth="3" fill="none" />
+          {/* Red center circle */}
+          <circle cx="60" cy="60" r="44" fill="#C44A20" />
+          {/* Contact pins */}
+          {contacts.map((angle) => (
+            <rect key={angle} x="57.5" y="2" width="5" height="3" rx="1" 
+                  fill="#F0EDE6" transform={`rotate(${angle} 60 60)`} />
+          ))}
+          {/* Rotor indicator */}
+          <g transform="rotate(-60 60 60)">
+            <rect x="58" y="8" width="4" height="14" rx="2" fill="#B8B0A4" />
+            <polygon points="60,6 56,12 64,12" fill="#B8B0A4" />
+          </g>
+          {/* Inner circles */}
+        </svg>
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="EnigmaLogotype">
+    ```jsx
+    export function EnigmaLogotype({ variant = "dark", className = "" }) {
+      return (
+        <div className={`flex items-center gap-3 ${className}`}>
+          <EnigmaIsotipo size={42} variant={variant} />
+          <span className="w-px h-9 bg-line" />
+          <div className="flex flex-col gap-0.5">
+            <span className="font-body font-light text-base tracking-[0.42em] 
+                           uppercase text-cream leading-none">
+              Enigma
+            </span>
+            <span className="font-mono text-[0.5rem] tracking-[0.48em] 
+                           uppercase text-cream2 opacity-40 leading-none">
+              Developers
+            </span>
+          </div>
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+**Usage**:
+
+```jsx
+import { EnigmaLogotype, EnigmaIsotipo } from "./components/EnigmaLogo.jsx";
+
+// Full logotype
+<EnigmaLogotype variant="dark" />
+
+// Icon only
+<EnigmaIsotipo size={64} variant="light" />
+```
+
+## Utility Components
+
+### WhatsAppBubble
+
+Floating WhatsApp contact button.
+
+**Location**: `src/components/WhatsAppBubble.jsx`
+
+### CookieConsent
+
+GDPR-compliant cookie consent banner.
+
+**Location**: `src/components/CookieConsent.jsx`
+
+### InteractiveRotor
+
+Animated enigma rotor visualization used in the Hero.
+
+**Location**: `src/components/InteractiveRotor.jsx`
+
+## Component Props Patterns
+
+Most components follow these patterns:
+
+<Note>
+  **Translation Integration**: Components use `const { t } = useT()` to access translations
+  
+  **Motion Integration**: Animations use `motion` from `motion/react` with `useInView` hooks
+  
+  **Routing**: Internal links use `<LocaleLink>` instead of `<Link>` for language-aware routing
+</Note>
+
+## Custom Hooks Used
+
+Components leverage these custom hooks:
+
+- **useTextDecrypt**: Animated text reveal effect (Hero.jsx:53, Services.jsx:121)
+- **use3DTilt**: 3D tilt effect on mouse move (Plans.jsx:17)
+- **useCountUp**: Animated number counting
+- **useStickyScroll**: Sticky scroll behavior
+
+See the [Internationalization](/frontend/internationalization) page for details on the `useT` hook.

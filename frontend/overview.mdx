@@ -1,0 +1,217 @@
+---
+title: Frontend Overview
+description: Architecture and technology stack of the Enigma Developers frontend application
+---
+
+# Frontend Overview
+
+The Enigma Developers frontend is a modern React application built with cutting-edge technologies for performance, internationalization, and exceptional user experience.
+
+## Technology Stack
+
+The application is built with the following core technologies:
+
+<CardGroup cols={2}>
+  <Card title="React 19" icon="react">
+    Latest React version with improved performance and concurrent features
+  </Card>
+  <Card title="Vite 6" icon="bolt">
+    Lightning-fast build tool and development server
+  </Card>
+  <Card title="React Router 7" icon="route">
+    Client-side routing with code splitting and lazy loading
+  </Card>
+  <Card title="Tailwind CSS 4" icon="paintbrush">
+    Utility-first CSS framework with custom theme
+  </Card>
+  <Card title="Motion (Framer)" icon="sparkles">
+    Powerful animation library for interactive UI
+  </Card>
+  <Card title="Multi-language" icon="globe">
+    Full Spanish and English support with custom i18n system
+  </Card>
+</CardGroup>
+
+## Key Dependencies
+
+From `package.json`:
+
+```json
+{
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0",
+    "motion": "^12.12.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.2",
+    "vite": "^6.3.5",
+    "tailwindcss": "^4.1.7",
+    "@tailwindcss/vite": "^4.1.7"
+  }
+}
+```
+
+## Project Structure
+
+The frontend source code is organized under `frontend/src/` with the following structure:
+
+```
+src/
+├── components/          # Reusable React components
+│   ├── Hero.jsx
+│   ├── Navbar.jsx
+│   ├── Footer.jsx
+│   ├── Services.jsx
+│   ├── Plans.jsx
+│   ├── Clients.jsx
+│   ├── EnigmaLogo.jsx
+│   ├── InteractiveRotor.jsx
+│   ├── WhatsAppBubble.jsx
+│   ├── CookieConsent.jsx
+│   └── ...
+├── pages/               # Page-level components
+│   ├── Home.jsx
+│   ├── About.jsx
+│   ├── ServicesPage.jsx
+│   ├── PlansPage.jsx
+│   ├── ClientsPage.jsx
+│   ├── Contact.jsx
+│   ├── PrivacyPolicy.jsx
+│   ├── TermsOfService.jsx
+│   └── ...
+├── i18n/                # Internationalization
+│   ├── LanguageContext.jsx
+│   ├── LocaleLink.jsx
+│   ├── routes.js
+│   └── locales/
+│       ├── es.json
+│       └── en.json
+├── hooks/               # Custom React hooks
+│   ├── useTextDecrypt.js
+│   ├── use3DTilt.js
+│   ├── useCountUp.js
+│   └── useStickyScroll.js
+├── App.jsx              # Root application component
+├── main.jsx             # Application entry point
+└── index.css            # Global styles and Tailwind theme
+```
+
+## Application Entry Point
+
+The application bootstraps in `main.jsx`:
+
+```jsx
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App.jsx";
+import "./index.css";
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </StrictMode>
+);
+```
+
+## Development Scripts
+
+Available npm scripts:
+
+<CodeGroup>
+```bash Development Server
+npm run dev
+# Starts Vite dev server on all network interfaces (0.0.0.0)
+```
+
+```bash Production Build
+npm run build
+# Builds optimized production bundle
+```
+
+```bash Preview Production
+npm run preview
+# Preview production build locally
+```
+</CodeGroup>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="Server-Side Rendering Ready">
+    Built with Vite for optimal build performance and code splitting. Supports lazy loading for better initial load times.
+  </Accordion>
+
+  <Accordion title="SEO Optimized">
+    - JSON-LD structured data for Organization, LocalBusiness, and BreadcrumbList
+    - OpenGraph and Twitter Card meta tags
+    - Hreflang tags for multi-language SEO
+    - Dynamic meta tags per route
+  </Accordion>
+
+  <Accordion title="Performance Optimized">
+    - Code splitting with React.lazy()
+    - Suspense boundaries with custom loading fallback
+    - Optimized animations with Motion library
+    - Custom hooks for performance (text decryption, 3D tilt effects)
+  </Accordion>
+
+  <Accordion title="Multi-Language Support">
+    - Spanish (default) and English
+    - URL-based language routing (/servicios vs /en/services)
+    - Custom LanguageContext and useT hook
+    - LocaleLink component for automatic language-aware routing
+  </Accordion>
+</AccordionGroup>
+
+## Core Architecture Patterns
+
+### 1. Context-Based State Management
+
+The application uses React Context for global state:
+
+- **LanguageContext**: Manages current language, translations, and language switching
+- No external state management library needed for this scale
+
+### 2. Component Composition
+
+Components follow a modular, composable pattern:
+
+- Page components compose smaller feature components
+- Shared UI components are highly reusable
+- Custom hooks extract reusable logic
+
+### 3. Route-Based Code Splitting
+
+Pages are lazy-loaded to improve initial bundle size:
+
+```jsx
+const ServicesPage = lazy(() => import("./pages/ServicesPage.jsx"));
+const PlansPage = lazy(() => import("./pages/PlansPage.jsx"));
+const About = lazy(() => import("./pages/About.jsx"));
+```
+
+<Note>
+  The Home page is NOT lazy-loaded since it's the primary landing page and should load immediately.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Component Documentation" icon="cube" href="/frontend/components">
+    Learn about the key React components
+  </Card>
+  <Card title="Routing System" icon="route" href="/frontend/routing">
+    Understand the multi-language routing setup
+  </Card>
+  <Card title="Internationalization" icon="globe" href="/frontend/internationalization">
+    Implement multi-language features
+  </Card>
+  <Card title="Styling & Theming" icon="paintbrush" href="/frontend/styling">
+    Explore the Tailwind CSS custom theme
+  </Card>
+</CardGroup>

@@ -1,0 +1,382 @@
+---
+title: 'Database & Prisma ORM'
+description: 'PostgreSQL 16 database with Prisma 6 for type-safe data access'
+---
+
+## Overview
+
+The backend uses **Prisma 6** as the ORM layer to interact with a **PostgreSQL 16** database. Prisma provides type-safe database queries, automatic migrations, and a powerful schema definition language.
+
+## Prisma Client
+
+The Prisma client is initialized in `src/db.js`:
+
+```javascript src/db.js
+import { PrismaClient } from "@prisma/client";
+
+export const prisma = new PrismaClient();
+```
+
+This singleton instance is imported throughout the application for database operations.
+
+## Database Schema
+
+The complete schema is defined in `prisma/schema.prisma`:
+
+```prisma prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @db.VarChar(200)
+  phone     String   @default("") @db.VarChar(30)
+  company   String   @default("") @db.VarChar(200)
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contacts")
+}
+
+model Lead {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @db.VarChar(200)
+  phone     String   @default("") @db.VarChar(30)
+  company   String   @default("") @db.VarChar(200)
+  message   String   @db.Text
+  source    String   @default("diagnosis") @db.VarChar(50)
+  status    String   @default("new") @db.VarChar(30)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("leads")
+}
+
+model Post {
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(300)
+  slug        String    @unique @db.VarChar(300)
+  excerpt     String    @default("") @db.VarChar(500)
+  content     String    @db.Text
+  coverImage  String    @default("") @map("cover_image") @db.VarChar(500)
+  published   Boolean   @default(false)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  categoryId  Int?      @map("category_id")
+  category    Category? @relation(fields: [categoryId], references: [id])
+
+  @@map("posts")
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(100)
+  slug  String @unique @db.VarChar(100)
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Complaint {
+  id                 Int      @id @default(autoincrement())
+  name               String   @db.VarChar(200)
+  documentType       String   @map("document_type") @db.VarChar(20)
+  documentNumber     String   @map("document_number") @db.VarChar(30)
+  address            String   @db.VarChar(500)
+  phone              String   @db.VarChar(30)
+  email              String   @db.VarChar(200)
+  isMinor            Boolean  @default(false) @map("is_minor")
+  guardianName       String   @default("") @map("guardian_name") @db.VarChar(200)
+  type               String   @db.VarChar(20)
+  serviceDescription String   @map("service_description") @db.Text
+  amountClaimed      Decimal? @map("amount_claimed") @db.Decimal(10, 2)
+  detail             String   @db.Text
+  consumerRequest    String   @map("consumer_request") @db.Text
+  status             String   @default("pending") @db.VarChar(30)
+  read               Boolean  @default(false)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("complaints")
+}
+```
+
+## Database Models
+
+### Contact Model
+
+Stores general contact form submissions from the website.
+
+<CodeGroup>
+```prisma Schema
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @db.VarChar(200)
+  phone     String   @default("") @db.VarChar(30)
+  company   String   @default("") @db.VarChar(200)
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contacts")
+}
+```
+
+```javascript Usage Example
+import { prisma } from "../db.js";
+
+const contact = await prisma.contact.create({
+  data: { name, email, phone, company, message },
+});
+```
+</CodeGroup>
+
+**Fields:**
+- `id`: Auto-incrementing primary key
+- `name`: Contact person name (max 100 chars)
+- `email`: Email address (max 200 chars)
+- `phone`: Phone number (max 30 chars, optional)
+- `company`: Company name (max 200 chars, optional)
+- `message`: Contact message (text)
+- `read`: Flag for admin tracking
+- `createdAt`: Automatic timestamp
+
+### Lead Model
+
+Captures qualified leads from diagnostic service requests.
+
+<CodeGroup>
+```prisma Schema
+model Lead {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @db.VarChar(200)
+  phone     String   @default("") @db.VarChar(30)
+  company   String   @default("") @db.VarChar(200)
+  message   String   @db.Text
+  source    String   @default("diagnosis") @db.VarChar(50)
+  status    String   @default("new") @db.VarChar(30)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("leads")
+}
+```
+
+```javascript Usage Example
+const lead = await prisma.lead.create({
+  data: { name, email, phone, company, message, source: "diagnosis" },
+});
+```
+</CodeGroup>
+
+**Fields:**
+- `source`: Lead origin (default: "diagnosis")
+- `status`: Lead status (default: "new")
+- Other fields similar to Contact model
+
+### Post & Category Models
+
+Blog content management system with categorization.
+
+```prisma Schema
+model Post {
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(300)
+  slug        String    @unique @db.VarChar(300)
+  excerpt     String    @default("") @db.VarChar(500)
+  content     String    @db.Text
+  coverImage  String    @default("") @map("cover_image") @db.VarChar(500)
+  published   Boolean   @default(false)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  categoryId  Int?      @map("category_id")
+  category    Category? @relation(fields: [categoryId], references: [id])
+
+  @@map("posts")
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(100)
+  slug  String @unique @db.VarChar(100)
+  posts Post[]
+
+  @@map("categories")
+}
+```
+
+**Key Features:**
+- One-to-many relationship (Category → Posts)
+- Unique slug for SEO-friendly URLs
+- Publishing workflow with `published` flag and `publishedAt` timestamp
+- Auto-updating `updatedAt` field
+
+### Complaint Model
+
+Compliance system for consumer complaints per Peruvian law (Libro de Reclamaciones).
+
+```prisma Schema
+model Complaint {
+  id                 Int      @id @default(autoincrement())
+  name               String   @db.VarChar(200)
+  documentType       String   @map("document_type") @db.VarChar(20)
+  documentNumber     String   @map("document_number") @db.VarChar(30)
+  address            String   @db.VarChar(500)
+  phone              String   @db.VarChar(30)
+  email              String   @db.VarChar(200)
+  isMinor            Boolean  @default(false) @map("is_minor")
+  guardianName       String   @default("") @map("guardian_name") @db.VarChar(200)
+  type               String   @db.VarChar(20)
+  serviceDescription String   @map("service_description") @db.Text
+  amountClaimed      Decimal? @map("amount_claimed") @db.Decimal(10, 2)
+  detail             String   @db.Text
+  consumerRequest    String   @map("consumer_request") @db.Text
+  status             String   @default("pending") @db.VarChar(30)
+  read               Boolean  @default(false)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("complaints")
+}
+```
+
+**Special Fields:**
+- `documentType`: DNI, CE, or PASSPORT
+- `isMinor`: Indicates if complainant is a minor
+- `guardianName`: Required when `isMinor` is true
+- `type`: "reclamo" (claim) or "queja" (complaint)
+- `amountClaimed`: Optional monetary claim amount
+
+<Note>
+The Complaint model complies with Peruvian consumer protection law (Ley N° 29571).
+</Note>
+
+## Database Operations
+
+### Creating Records
+
+Example from `contactController.js`:
+
+```javascript src/controllers/contactController.js
+import { prisma } from "../db.js";
+
+const contact = await prisma.contact.create({
+  data: { name, email, phone, company, message },
+});
+```
+
+### Querying Records
+
+```javascript Example Queries
+// Find all unread contacts
+const unread = await prisma.contact.findMany({
+  where: { read: false },
+  orderBy: { createdAt: 'desc' },
+});
+
+// Find post by slug with category
+const post = await prisma.post.findUnique({
+  where: { slug: 'my-post' },
+  include: { category: true },
+});
+
+// Count pending complaints
+const pending = await prisma.complaint.count({
+  where: { status: 'pending' },
+});
+```
+
+## Migration Commands
+
+<CodeGroup>
+```bash Development Migration
+npm run db:migrate
+# Creates and applies migration with history
+```
+
+```bash Push Schema (No Migration)
+npm run db:push
+# Pushes schema changes without creating migration files
+```
+
+```bash Prisma Studio
+npm run db:studio
+# Opens GUI for database browsing at http://localhost:5555
+```
+
+```bash Seed Database
+npm run db:seed
+# Runs prisma/seed.js to populate initial data
+```
+</CodeGroup>
+
+<Warning>
+Use `db:migrate` in development. Use `db:push` only for prototyping or when migration history isn't needed.
+</Warning>
+
+## Database Connection
+
+Configure via `DATABASE_URL` environment variable:
+
+```bash .env
+DATABASE_URL="postgresql://username:password@localhost:5432/enigma_db?schema=public"
+```
+
+**Connection String Format:**
+```
+postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=SCHEMA
+```
+
+## Type Safety
+
+Prisma generates TypeScript types automatically. Even in JavaScript projects, you get IntelliSense and autocompletion:
+
+```javascript Type-Safe Queries
+// Prisma knows all fields and relationships
+const lead = await prisma.lead.create({
+  data: {
+    name: "John Doe",
+    email: "john@example.com",
+    // TypeScript/IntelliSense will suggest valid fields
+  },
+});
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Transactions" icon="lock">
+    Wrap multiple operations in `prisma.$transaction()` for atomicity
+  </Card>
+  <Card title="Index Key Fields" icon="gauge-high">
+    Add `@@index` for frequently queried fields like email or slug
+  </Card>
+  <Card title="Validate Before Insert" icon="shield-check">
+    Always use Zod validation before database operations
+  </Card>
+  <Card title="Handle Errors" icon="triangle-exclamation">
+    Catch Prisma errors and return user-friendly messages
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Endpoints" icon="route" href="/backend/api-endpoints">
+    Learn how controllers use Prisma to handle requests
+  </Card>
+  <Card title="Email System" icon="envelope" href="/backend/email">
+    See how email notifications work with database records
+  </Card>
+</CardGroup>

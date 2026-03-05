@@ -1,0 +1,252 @@
+---
+title: 'Backend Overview'
+description: 'Express 5 REST API with Prisma ORM and PostgreSQL database'
+---
+
+## Architecture
+
+The Enigma Developers backend is a modern REST API built with Express 5, Prisma 6, and PostgreSQL 16. It handles contact forms, lead generation, complaint submissions, and provides email notifications.
+
+<CardGroup cols={2}>
+  <Card title="Express 5" icon="server">
+    Latest Express framework with improved performance and security
+  </Card>
+  <Card title="Prisma 6" icon="database">
+    Type-safe ORM with automatic migrations and schema management
+  </Card>
+  <Card title="PostgreSQL 16" icon="elephant">
+    Production-grade relational database for data persistence
+  </Card>
+  <Card title="Nodemailer 7" icon="envelope">
+    Email notifications for form submissions and confirmations
+  </Card>
+</CardGroup>
+
+## Project Structure
+
+The backend follows a clean MVC-style architecture:
+
+```
+backend/
+├── src/
+│   ├── index.js              # Application entry point
+│   ├── db.js                 # Prisma client initialization
+│   ├── mail.js               # Email configuration
+│   ├── controllers/          # Business logic
+│   │   ├── contactController.js
+│   │   ├── leadsController.js
+│   │   └── complaintsController.js
+│   └── routes/               # API endpoints
+│       ├── contact.js
+│       ├── leads.js
+│       └── complaints.js
+├── prisma/
+│   └── schema.prisma         # Database schema
+└── package.json
+```
+
+## Core Dependencies
+
+From `package.json`:
+
+```json package.json
+{
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "nodemailer": "^7.0.3",
+    "zod": "^3.25.17"
+  }
+}
+```
+
+### Key Libraries
+
+- **Express 5.1**: High-performance web framework
+- **Prisma 6.9**: Modern ORM with type safety
+- **Helmet 8.1**: Security headers middleware
+- **CORS 2.8**: Cross-origin resource sharing
+- **express-rate-limit 7.5**: API rate limiting protection
+- **Zod 3.25**: Runtime validation and type inference
+- **Nodemailer 7.0**: Email sending functionality
+
+## Application Setup
+
+The main application file (`src/index.js`) configures middleware and routes:
+
+```javascript src/index.js
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { prisma } from "./db.js";
+import contactRoutes from "./routes/contact.js";
+import leadsRoutes from "./routes/leads.js";
+import complaintsRoutes from "./routes/complaints.js";
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+app.set("trust proxy", 1);
+app.use(helmet());
+```
+
+## Security Middleware
+
+### Helmet
+
+Helmet sets secure HTTP headers to protect against common vulnerabilities:
+
+```javascript src/index.js
+app.use(helmet());
+```
+
+### CORS Configuration
+
+Dynamic origin validation from environment variables:
+
+```javascript src/index.js
+const allowedOrigins = [
+  process.env.CORS_ORIGIN || "http://localhost",
+  (process.env.CORS_ORIGIN || "").replace("://", "://www."),
+];
+
+app.use(
+  cors({
+    origin(origin, cb) {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(null, false);
+    },
+    methods: ["GET", "POST"],
+  })
+);
+```
+
+### Rate Limiting
+
+Protects API from abuse with 50 requests per 15-minute window:
+
+```javascript src/index.js
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 50,                    // 50 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes, intenta de nuevo más tarde." },
+});
+
+app.use("/api", apiLimiter);
+```
+
+### JSON Payload Limit
+
+Prevents large payload attacks:
+
+```javascript src/index.js
+app.use(express.json({ limit: "10kb" }));
+```
+
+<Note>
+All API endpoints are protected by rate limiting and payload size restrictions.
+</Note>
+
+## Error Handling
+
+Global error handling middleware:
+
+```javascript src/index.js
+// 404 handler
+app.use((_req, res) => {
+  res.status(404).json({ error: "Ruta no encontrada" });
+});
+
+// 500 handler
+app.use((err, _req, res, _next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Error interno del servidor" });
+});
+```
+
+## Server Initialization
+
+Graceful startup and shutdown with database connection:
+
+```javascript src/index.js
+async function start() {
+  try {
+    await prisma.$connect();
+    console.log("Conectado a PostgreSQL");
+
+    app.listen(PORT, () => {
+      console.log(`Backend corriendo en puerto ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Error al iniciar el servidor:", error);
+    process.exit(1);
+  }
+}
+
+process.on("SIGTERM", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+start();
+```
+
+## Available Scripts
+
+```bash
+# Development with hot reload
+npm run dev
+
+# Production server
+npm start
+
+# Database migrations
+npm run db:migrate
+
+# Push schema without migration
+npm run db:push
+
+# Prisma Studio GUI
+npm run db:studio
+
+# Seed database
+npm run db:seed
+```
+
+## Environment Variables
+
+<Warning>
+Ensure these variables are set before running the application.
+</Warning>
+
+```bash .env
+DATABASE_URL="postgresql://user:pass@localhost:5432/enigma"
+PORT=4000
+CORS_ORIGIN="https://enigma-developers.com"
+CONTACT_EMAIL="info@enigma-developers.com"
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+SMTP_FROM="Enigma Developers <noreply@enigma-developers.com>"
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/backend/database">
+    Learn about Prisma models and database structure
+  </Card>
+  <Card title="API Endpoints" icon="route" href="/backend/api-endpoints">
+    Explore available API routes and controllers
+  </Card>
+  <Card title="Email System" icon="envelope" href="/backend/email">
+    Configure and use the email notification system
+  </Card>
+</CardGroup>

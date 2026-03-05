@@ -1,0 +1,547 @@
+---
+title: 'API Endpoints'
+description: 'REST API routes, controllers, and request handling'
+---
+
+## API Overview
+
+The backend exposes RESTful endpoints for contact forms, lead generation, and complaint submissions. All routes are prefixed with `/api` and protected by rate limiting.
+
+## Route Structure
+
+Routes are organized by resource in `src/routes/`:
+
+```
+src/routes/
+├── contact.js      → /api/contact
+├── leads.js        → /api/leads
+└── complaints.js   → /api/complaints
+```
+
+Each route file defines HTTP methods and delegates to controllers:
+
+<CodeGroup>
+```javascript src/routes/contact.js
+import { Router } from "express";
+import { submitContact } from "../controllers/contactController.js";
+
+const router = Router();
+
+router.post("/", submitContact);
+
+export default router;
+```
+
+```javascript src/routes/leads.js
+import { Router } from "express";
+import { submitLead } from "../controllers/leadsController.js";
+
+const router = Router();
+
+router.post("/", submitLead);
+
+export default router;
+```
+
+```javascript src/routes/complaints.js
+import { Router } from "express";
+import { submitComplaint } from "../controllers/complaintsController.js";
+
+const router = Router();
+
+router.post("/", submitComplaint);
+
+export default router;
+```
+</CodeGroup>
+
+## Route Registration
+
+Routes are mounted in `src/index.js`:
+
+```javascript src/index.js
+import contactRoutes from "./routes/contact.js";
+import leadsRoutes from "./routes/leads.js";
+import complaintsRoutes from "./routes/complaints.js";
+
+app.use("/api/contact", contactRoutes);
+app.use("/api/leads", leadsRoutes);
+app.use("/api/complaints", complaintsRoutes);
+
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+```
+
+## Controllers Pattern
+
+Controllers contain business logic, validation, database operations, and email notifications.
+
+### Contact Controller
+
+Handles general contact form submissions from the website.
+
+```javascript src/controllers/contactController.js
+import { z } from "zod";
+import { prisma } from "../db.js";
+import { sendEmail } from "../mail.js";
+
+const contactSchema = z.object({
+  name: z.string().min(2).max(100),
+  email: z.string().email().max(200),
+  phone: z.string().min(6).max(30),
+  company: z.string().max(200).optional().default(""),
+  message: z.string().max(5000).optional().default(""),
+});
+
+export async function submitContact(req, res) {
+  const result = contactSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: "Datos inválidos",
+      details: result.error.flatten().fieldErrors,
+    });
+  }
+
+  const { name, email, phone, company, message } = result.data;
+
+  try {
+    const contact = await prisma.contact.create({
+      data: { name, email, phone, company, message },
+    });
+
+    // Send notification to admin
+    await sendEmail({
+      to: process.env.CONTACT_EMAIL,
+      subject: `Nuevo mensaje de contacto: ${name}`,
+      html: `
+        <h2>Nuevo mensaje de contacto</h2>
+        <p><strong>Nombre:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Teléfono:</strong> ${phone || "No proporcionado"}</p>
+        <p><strong>Empresa:</strong> ${company || "No proporcionada"}</p>
+        <hr />
+        <p><strong>Mensaje:</strong></p>
+        <p>${message}</p>
+      `,
+    });
+
+    // Send confirmation to user
+    await sendEmail({
+      to: email,
+      subject: "Recibimos tu mensaje — Enigma Developers",
+      html: `
+        <h2>Hola ${name},</h2>
+        <p>Recibimos tu mensaje correctamente. Nuestro equipo te responderá en menos de 24 horas.</p>
+        <p>Si necesitas una respuesta más rápida, puedes escribirnos por WhatsApp:</p>
+        <p><a href="https://wa.me/51959561015">+51 959 561 015</a></p>
+        <br />
+        <p>Saludos,<br />Equipo Enigma Developers</p>
+      `,
+    });
+
+    res.status(201).json({ message: "Mensaje enviado correctamente", id: contact.id });
+  } catch (error) {
+    console.error("Error en contacto:", error);
+    res.status(500).json({ error: "Error al procesar el mensaje" });
+  }
+}
+```
+
+**Endpoint:** `POST /api/contact`
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "phone": "555-1234",
+  "company": "Acme Corp",
+  "message": "I need help with my project"
+}
+```
+
+**Response (201):**
+```json
+{
+  "message": "Mensaje enviado correctamente",
+  "id": 42
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": "Datos inválidos",
+  "details": {
+    "email": ["Invalid email"]
+  }
+}
+```
+
+### Leads Controller
+
+Captures qualified leads from diagnostic service requests.
+
+```javascript src/controllers/leadsController.js
+import { z } from "zod";
+import { prisma } from "../db.js";
+import { sendEmail } from "../mail.js";
+
+const leadSchema = z.object({
+  name: z.string().min(2).max(100),
+  email: z.string().email().max(200),
+  phone: z.string().min(6).max(30),
+  company: z.string().max(200).optional().default(""),
+  message: z.string().min(10).max(5000),
+});
+
+export async function submitLead(req, res) {
+  const result = leadSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: "Datos inválidos",
+      details: result.error.flatten().fieldErrors,
+    });
+  }
+
+  const { name, email, phone, company, message } = result.data;
+
+  try {
+    const lead = await prisma.lead.create({
+      data: { name, email, phone, company, message, source: "diagnosis" },
+    });
+
+    await sendEmail({
+      to: process.env.CONTACT_EMAIL,
+      subject: `Nueva solicitud de diagnóstico: ${name} — ${company || "Sin empresa"}`,
+      html: `
+        <h2>Nueva solicitud de diagnóstico gratuito</h2>
+        <p><strong>Nombre:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Teléfono:</strong> ${phone || "No proporcionado"}</p>
+        <p><strong>Empresa:</strong> ${company || "No proporcionada"}</p>
+        <hr />
+        <p><strong>Descripción:</strong></p>
+        <p>${message}</p>
+      `,
+    });
+
+    await sendEmail({
+      to: email,
+      subject: "Tu diagnóstico gratuito está en camino — Enigma Developers",
+      html: `
+        <h2>Hola ${name},</h2>
+        <p>Recibimos tu solicitud de diagnóstico gratuito. Nuestro equipo se pondrá en contacto contigo en menos de 24 horas para agendar la sesión.</p>
+        <p><strong>¿Qué incluye el diagnóstico?</strong></p>
+        <ul>
+          <li>Análisis de tu web, servidores y correo</li>
+          <li>Evaluación de seguridad básica</li>
+          <li>Identificación de oportunidades de mejora</li>
+          <li>Propuesta personalizada sin compromiso</li>
+        </ul>
+        <p>Si necesitas una respuesta más rápida:</p>
+        <p><a href="https://wa.me/51959561015">WhatsApp: +51 959 561 015</a></p>
+        <br />
+        <p>Saludos,<br />Equipo Enigma Developers</p>
+      `,
+    });
+
+    res.status(201).json({ message: "Solicitud de diagnóstico recibida", id: lead.id });
+  } catch (error) {
+    console.error("Error en lead:", error);
+    res.status(500).json({ error: "Error al procesar la solicitud" });
+  }
+}
+```
+
+**Endpoint:** `POST /api/leads`
+
+<Note>
+The `message` field requires at least 10 characters for leads, unlike contact forms.
+</Note>
+
+### Complaints Controller
+
+Handles formal consumer complaints (Libro de Reclamaciones).
+
+```javascript src/controllers/complaintsController.js
+import { z } from "zod";
+import { prisma } from "../db.js";
+import { sendEmail } from "../mail.js";
+
+const complaintSchema = z.object({
+  name: z.string().min(2).max(200),
+  documentType: z.enum(["DNI", "CE", "PASSPORT"]),
+  documentNumber: z.string().min(4).max(30),
+  address: z.string().min(5).max(500),
+  phone: z.string().min(6).max(30),
+  email: z.string().email().max(200),
+  isMinor: z.boolean().default(false),
+  guardianName: z.string().max(200).optional().default(""),
+  type: z.enum(["reclamo", "queja"]),
+  serviceDescription: z.string().min(10).max(5000),
+  amountClaimed: z.number().positive().optional().nullable(),
+  detail: z.string().min(10).max(5000),
+  consumerRequest: z.string().min(10).max(5000),
+});
+
+export async function submitComplaint(req, res) {
+  const result = complaintSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: "Datos inválidos",
+      details: result.error.flatten().fieldErrors,
+    });
+  }
+
+  const data = result.data;
+
+  try {
+    const complaint = await prisma.complaint.create({
+      data: {
+        name: data.name,
+        documentType: data.documentType,
+        documentNumber: data.documentNumber,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        isMinor: data.isMinor,
+        guardianName: data.guardianName,
+        type: data.type,
+        serviceDescription: data.serviceDescription,
+        amountClaimed: data.amountClaimed ?? undefined,
+        detail: data.detail,
+        consumerRequest: data.consumerRequest,
+      },
+    });
+
+    const typeLabel = data.type === "reclamo" ? "Reclamo" : "Queja";
+
+    await sendEmail({
+      to: process.env.CONTACT_EMAIL,
+      subject: `Libro de Reclamaciones — ${typeLabel} #${complaint.id}: ${data.name}`,
+      html: `
+        <h2>Nuevo ${typeLabel} — #${complaint.id}</h2>
+        <h3>Datos del consumidor</h3>
+        <p><strong>Nombre:</strong> ${data.name}</p>
+        <p><strong>Documento:</strong> ${data.documentType} ${data.documentNumber}</p>
+        <p><strong>Domicilio:</strong> ${data.address}</p>
+        <p><strong>Teléfono:</strong> ${data.phone}</p>
+        <p><strong>Email:</strong> ${data.email}</p>
+        ${data.isMinor ? `<p><strong>Menor de edad — Apoderado:</strong> ${data.guardianName}</p>` : ""}
+        <hr />
+        <h3>Detalle del bien o servicio</h3>
+        <p>${data.serviceDescription}</p>
+        ${data.amountClaimed ? `<p><strong>Monto reclamado:</strong> S/ ${data.amountClaimed}</p>` : ""}
+        <hr />
+        <h3>Detalle del ${typeLabel.toLowerCase()}</h3>
+        <p>${data.detail}</p>
+        <h3>Pedido del consumidor</h3>
+        <p>${data.consumerRequest}</p>
+      `,
+    });
+
+    await sendEmail({
+      to: data.email,
+      subject: `Confirmación de ${typeLabel} #${complaint.id} — Enigma Developers`,
+      html: `
+        <h2>Hola ${data.name},</h2>
+        <p>Hemos registrado tu ${typeLabel.toLowerCase()} con el número <strong>#${complaint.id}</strong>.</p>
+        <p>De acuerdo con el Código de Protección y Defensa del Consumidor (Ley N° 29571), daremos respuesta a tu ${typeLabel.toLowerCase()} en un plazo máximo de <strong>30 días calendario</strong>.</p>
+        <br />
+        <p><strong>Proveedor:</strong> Enigma Developers S.A.C.</p>
+        <p><strong>RUC:</strong> 20605632875</p>
+        <br />
+        <p>Saludos,<br />Equipo Enigma Developers</p>
+      `,
+    });
+
+    res.status(201).json({ message: "Registro enviado correctamente", id: complaint.id });
+  } catch (error) {
+    console.error("Error en libro de reclamaciones:", error);
+    res.status(500).json({ error: "Error al procesar el registro" });
+  }
+}
+```
+
+**Endpoint:** `POST /api/complaints`
+
+<Warning>
+This endpoint implements Peru's consumer protection law requirements. Responses must be provided within 30 calendar days.
+</Warning>
+
+## Request Validation
+
+All endpoints use **Zod** for runtime validation:
+
+```javascript Validation Pattern
+const result = schema.safeParse(req.body);
+
+if (!result.success) {
+  return res.status(400).json({
+    error: "Datos inválidos",
+    details: result.error.flatten().fieldErrors,
+  });
+}
+
+const validatedData = result.data;
+```
+
+**Benefits:**
+- Type-safe data extraction
+- Automatic error messages
+- Field-level validation details
+- Default values and transformations
+
+## Rate Limiting
+
+All `/api/*` routes are protected by rate limiting configured in `src/index.js`:
+
+```javascript src/index.js
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 50,                    // 50 requests per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes, intenta de nuevo más tarde." },
+});
+
+app.use("/api", apiLimiter);
+```
+
+**Rate Limit Headers:**
+```
+RateLimit-Limit: 50
+RateLimit-Remaining: 49
+RateLimit-Reset: 1234567890
+```
+
+**Error Response (429):**
+```json
+{
+  "error": "Demasiadas solicitudes, intenta de nuevo más tarde."
+}
+```
+
+## CORS Configuration
+
+Cross-origin requests are validated against allowed origins:
+
+```javascript src/index.js
+const allowedOrigins = [
+  process.env.CORS_ORIGIN || "http://localhost",
+  (process.env.CORS_ORIGIN || "").replace("://", "://www."),
+];
+
+app.use(
+  cors({
+    origin(origin, cb) {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(null, false);
+    },
+    methods: ["GET", "POST"],
+  })
+);
+```
+
+<Note>
+The configuration automatically allows both www and non-www versions of `CORS_ORIGIN`.
+</Note>
+
+## Error Handling
+
+Global error handling middleware catches unhandled errors:
+
+```javascript src/index.js
+app.use((err, _req, res, _next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Error interno del servidor" });
+});
+```
+
+**Error Response Hierarchy:**
+1. **400**: Validation errors (Zod schema failures)
+2. **429**: Rate limit exceeded
+3. **404**: Route not found
+4. **500**: Internal server errors (database, email, etc.)
+
+## Health Check
+
+Basic health check endpoint for monitoring:
+
+```javascript src/index.js
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+```
+
+**Response:**
+```json
+{
+  "status": "ok"
+}
+```
+
+## Testing Endpoints
+
+<CodeGroup>
+```bash cURL Example
+curl -X POST https://api.enigma-developers.com/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "555-1234",
+    "company": "Acme Corp",
+    "message": "I need help with my project"
+  }'
+```
+
+```javascript Fetch Example
+const response = await fetch('https://api.enigma-developers.com/api/contact', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'John Doe',
+    email: 'john@example.com',
+    phone: '555-1234',
+    company: 'Acme Corp',
+    message: 'I need help with my project',
+  }),
+});
+
+const data = await response.json();
+```
+</CodeGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Validate Input" icon="shield-check">
+    Always use Zod schemas before database operations
+  </Card>
+  <Card title="Handle Errors" icon="triangle-exclamation">
+    Catch errors and return user-friendly messages
+  </Card>
+  <Card title="Rate Limit" icon="gauge-high">
+    Protect against abuse with appropriate limits
+  </Card>
+  <Card title="Log Errors" icon="file-lines">
+    Console.error all exceptions for debugging
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/backend/database">
+    Learn about the data models used by controllers
+  </Card>
+  <Card title="Email System" icon="envelope" href="/backend/email">
+    Understand how email notifications are sent
+  </Card>
+</CardGroup>

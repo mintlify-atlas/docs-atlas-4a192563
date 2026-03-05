@@ -1,0 +1,176 @@
+---
+title: 'Contact Model'
+description: 'Database schema for contact form submissions'
+---
+
+## Overview
+
+The `Contact` model stores general contact inquiries submitted through the contact form. This is used for visitors who want to get in touch with Enigma Developers for information, questions, or general communication.
+
+## Prisma Schema
+
+```prisma
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @db.VarChar(200)
+  phone     String   @default("") @db.VarChar(30)
+  company   String   @default("") @db.VarChar(200)
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contacts")
+}
+```
+
+## Fields
+
+<ResponseField name="id" type="Int">
+  **Primary Key**: Auto-incrementing unique identifier
+  
+  Automatically generated when a new contact is created
+</ResponseField>
+
+<ResponseField name="name" type="String">
+  Full name of the person contacting
+  
+  - **Type:** VARCHAR(100)
+  - **Required:** Yes
+  - **Validation:** 2-100 characters
+</ResponseField>
+
+<ResponseField name="email" type="String">
+  Email address of the contact
+  
+  - **Type:** VARCHAR(200)
+  - **Required:** Yes
+  - **Validation:** Must be valid email format, max 200 characters
+</ResponseField>
+
+<ResponseField name="phone" type="String">
+  Contact phone number
+  
+  - **Type:** VARCHAR(30)
+  - **Required:** Yes
+  - **Default:** Empty string
+  - **Validation:** 6-30 characters
+</ResponseField>
+
+<ResponseField name="company" type="String">
+  Company or organization name
+  
+  - **Type:** VARCHAR(200)
+  - **Required:** No
+  - **Default:** Empty string
+  - **Validation:** Max 200 characters
+</ResponseField>
+
+<ResponseField name="message" type="String">
+  Message or inquiry from the contact
+  
+  - **Type:** TEXT
+  - **Required:** Yes (in database schema)
+  - **Validation:** Max 5000 characters (API level)
+  - **Note:** Can be empty string via API (optional parameter)
+</ResponseField>
+
+<ResponseField name="read" type="Boolean">
+  Indicates if the contact has been reviewed by staff
+  
+  - **Type:** BOOLEAN
+  - **Default:** `false`
+  - **Usage:** Used by admin dashboard to track which contacts need attention
+</ResponseField>
+
+<ResponseField name="createdAt" type="DateTime">
+  Timestamp when the contact was submitted
+  
+  - **Type:** TIMESTAMP
+  - **Default:** Current timestamp
+  - **Column Name:** `created_at` (snake_case in database)
+</ResponseField>
+
+## Database Table
+
+**Table Name:** `contacts`
+
+## Example Record
+
+```json
+{
+  "id": 42,
+  "name": "María González",
+  "email": "maria@example.com",
+  "phone": "+51987654321",
+  "company": "Tech Solutions SAC",
+  "message": "Necesito información sobre sus servicios de desarrollo web",
+  "read": false,
+  "createdAt": "2026-03-05T14:30:00.000Z"
+}
+```
+
+## Relationships
+
+The `Contact` model has no relationships with other models. It's a standalone table for storing contact inquiries.
+
+## Usage Flow
+
+1. **User submits form** → POST to `/api/contact`
+2. **API validates data** → Using Zod schema (contactController.js:5-11)
+3. **Record created** → Inserted into `contacts` table with `read: false`
+4. **Emails sent** → Notifications to admin and confirmation to user
+5. **Admin reviews** → Updates `read: true` after processing
+
+## Difference from Lead Model
+
+While similar to the `Lead` model, the `Contact` model is used for:
+
+- **General inquiries** and questions
+- **Information requests**
+- **Support questions**
+
+The `Lead` model is specifically for:
+- **Diagnosis requests** (qualified leads)
+- **Sales pipeline tracking** (with `source` and `status` fields)
+
+## Query Examples
+
+### Create a Contact
+
+```javascript
+const contact = await prisma.contact.create({
+  data: {
+    name: "María González",
+    email: "maria@example.com",
+    phone: "+51987654321",
+    company: "Tech Solutions SAC",
+    message: "Necesito información sobre servicios"
+  }
+});
+```
+
+### Get Unread Contacts
+
+```javascript
+const unreadContacts = await prisma.contact.findMany({
+  where: { read: false },
+  orderBy: { createdAt: 'desc' }
+});
+```
+
+### Mark as Read
+
+```javascript
+await prisma.contact.update({
+  where: { id: 42 },
+  data: { read: true }
+});
+```
+
+## Implementation Reference
+
+Source files:
+- Schema: `prisma/schema.prisma:10-21`
+- API Controller: `src/controllers/contactController.js:26-28`
+- Validation: `src/controllers/contactController.js:5-11`

@@ -1,0 +1,346 @@
+---
+title: 'Complaint Model'
+description: 'Database schema for consumer complaints (INDECOPI compliance)'
+---
+
+## Overview
+
+The `Complaint` model stores consumer complaints and claims submitted through the electronic complaints book (Libro de Reclamaciones). This model complies with Peruvian consumer protection law (Ley N° 29571) and INDECOPI requirements.
+
+## Prisma Schema
+
+```prisma
+model Complaint {
+  id                 Int      @id @default(autoincrement())
+  name               String   @db.VarChar(200)
+  documentType       String   @map("document_type") @db.VarChar(20)
+  documentNumber     String   @map("document_number") @db.VarChar(30)
+  address            String   @db.VarChar(500)
+  phone              String   @db.VarChar(30)
+  email              String   @db.VarChar(200)
+  isMinor            Boolean  @default(false) @map("is_minor")
+  guardianName       String   @default("") @map("guardian_name") @db.VarChar(200)
+  type               String   @db.VarChar(20)
+  serviceDescription String   @map("service_description") @db.Text
+  amountClaimed      Decimal? @map("amount_claimed") @db.Decimal(10, 2)
+  detail             String   @db.Text
+  consumerRequest    String   @map("consumer_request") @db.Text
+  status             String   @default("pending") @db.VarChar(30)
+  read               Boolean  @default(false)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("complaints")
+}
+```
+
+## Fields
+
+### Identification
+
+<ResponseField name="id" type="Int">
+  **Primary Key**: Auto-incrementing unique complaint ID
+  
+  Used as the official complaint number for tracking and legal purposes
+</ResponseField>
+
+### Consumer Information
+
+<ResponseField name="name" type="String">
+  Full legal name of the consumer
+  
+  - **Type:** VARCHAR(200)
+  - **Required:** Yes
+  - **Validation:** 2-200 characters
+</ResponseField>
+
+<ResponseField name="documentType" type="String">
+  Type of identification document
+  
+  - **Type:** VARCHAR(20)
+  - **Required:** Yes
+  - **Allowed Values:** `"DNI"`, `"CE"`, `"PASSPORT"`
+  - **Column Name:** `document_type`
+</ResponseField>
+
+<ResponseField name="documentNumber" type="String">
+  Identification document number
+  
+  - **Type:** VARCHAR(30)
+  - **Required:** Yes
+  - **Validation:** 4-30 characters
+  - **Column Name:** `document_number`
+</ResponseField>
+
+<ResponseField name="address" type="String">
+  Physical address of the consumer
+  
+  - **Type:** VARCHAR(500)
+  - **Required:** Yes
+  - **Validation:** 5-500 characters
+</ResponseField>
+
+<ResponseField name="phone" type="String">
+  Contact phone number
+  
+  - **Type:** VARCHAR(30)
+  - **Required:** Yes
+  - **Validation:** 6-30 characters
+</ResponseField>
+
+<ResponseField name="email" type="String">
+  Email address for notifications
+  
+  - **Type:** VARCHAR(200)
+  - **Required:** Yes
+  - **Validation:** Valid email format, max 200 characters
+</ResponseField>
+
+### Minor Guardian Information
+
+<ResponseField name="isMinor" type="Boolean">
+  Indicates if the consumer is under 18 years old
+  
+  - **Type:** BOOLEAN
+  - **Default:** `false`
+  - **Column Name:** `is_minor`
+</ResponseField>
+
+<ResponseField name="guardianName" type="String">
+  Full name of legal guardian or representative
+  
+  - **Type:** VARCHAR(200)
+  - **Required:** Only if `isMinor` is `true`
+  - **Default:** Empty string
+  - **Validation:** Max 200 characters
+  - **Column Name:** `guardian_name`
+</ResponseField>
+
+### Complaint Details
+
+<ResponseField name="type" type="String">
+  Type of consumer report
+  
+  - **Type:** VARCHAR(20)
+  - **Required:** Yes
+  - **Allowed Values:**
+    - `"reclamo"`: Claim related to products or services
+    - `"queja"`: Grievance about customer service or attention
+</ResponseField>
+
+<ResponseField name="serviceDescription" type="String">
+  Description of the product or service in question
+  
+  - **Type:** TEXT
+  - **Required:** Yes
+  - **Validation:** 10-5000 characters
+  - **Column Name:** `service_description`
+</ResponseField>
+
+<ResponseField name="amountClaimed" type="Decimal">
+  Monetary amount being claimed (if applicable)
+  
+  - **Type:** DECIMAL(10, 2)
+  - **Required:** No (nullable)
+  - **Validation:** Must be positive number
+  - **Format:** Up to 10 digits total, 2 decimal places
+  - **Example:** 3500.00
+  - **Column Name:** `amount_claimed`
+</ResponseField>
+
+<ResponseField name="detail" type="String">
+  Detailed explanation of the complaint or claim
+  
+  - **Type:** TEXT
+  - **Required:** Yes
+  - **Validation:** 10-5000 characters
+</ResponseField>
+
+<ResponseField name="consumerRequest" type="String">
+  What the consumer is requesting as resolution
+  
+  - **Type:** TEXT
+  - **Required:** Yes
+  - **Validation:** 10-5000 characters
+  - **Column Name:** `consumer_request`
+</ResponseField>
+
+### Status Tracking
+
+<ResponseField name="status" type="String">
+  Current complaint resolution status
+  
+  - **Type:** VARCHAR(30)
+  - **Default:** `"pending"`
+  - **Common Values:**
+    - `"pending"`: Awaiting review
+    - `"in_progress"`: Being investigated
+    - `"resolved"`: Resolved within 30 days
+    - `"escalated"`: Escalated to INDECOPI
+</ResponseField>
+
+<ResponseField name="read" type="Boolean">
+  Indicates if the complaint has been reviewed by staff
+  
+  - **Type:** BOOLEAN
+  - **Default:** `false`
+</ResponseField>
+
+<ResponseField name="createdAt" type="DateTime">
+  Timestamp when complaint was submitted
+  
+  - **Type:** TIMESTAMP
+  - **Default:** Current timestamp
+  - **Column Name:** `created_at`
+  - **Legal Importance:** Start of 30-day response period
+</ResponseField>
+
+## Database Table
+
+**Table Name:** `complaints`
+
+## Example Record
+
+```json
+{
+  "id": 123,
+  "name": "Juan Carlos Rodríguez López",
+  "documentType": "DNI",
+  "documentNumber": "12345678",
+  "address": "Av. Arequipa 1234, Miraflores, Lima",
+  "phone": "+51987654321",
+  "email": "juan.rodriguez@example.com",
+  "isMinor": false,
+  "guardianName": "",
+  "type": "reclamo",
+  "serviceDescription": "Servicio de desarrollo de sitio web corporativo contratado en enero 2026",
+  "amountClaimed": 3500.00,
+  "detail": "El sitio web fue entregado con errores de programación y no cumple con las especificaciones acordadas en el contrato",
+  "consumerRequest": "Solicito la corrección de todos los errores reportados sin costo adicional y compensación por el retraso",
+  "status": "pending",
+  "read": false,
+  "createdAt": "2026-03-05T09:00:00.000Z"
+}
+```
+
+## Legal Requirements
+
+### INDECOPI Compliance
+
+This model structure complies with:
+
+- **Código de Protección y Defensa del Consumidor (Ley N° 29571)**
+- **Decreto Supremo N° 011-2011-PCM**
+
+### Required Information
+
+According to Peruvian law, the complaints book must collect:
+
+✅ Consumer identification (name, document type, document number)
+✅ Consumer contact information (address, phone, email)
+✅ Guardian information (if minor)
+✅ Type of report (reclamo vs queja)
+✅ Service description
+✅ Detailed complaint
+✅ Consumer's request
+✅ Submission timestamp
+
+### Response Timeline
+
+The company must respond within **30 calendar days** from `createdAt`.
+
+## Reclamo vs Queja
+
+<Expandable title="Understanding the difference">
+
+### Reclamo (Claim)
+
+A **reclamo** is related to products or services:
+- Defective products
+- Services not delivered as promised
+- Non-compliance with contracts
+- Quality issues
+
+**May include:** `amountClaimed` field for monetary compensation
+
+### Queja (Grievance)
+
+A **queja** is related to customer service or attention:
+- Poor treatment by staff
+- Long wait times
+- Lack of response to inquiries
+- Administrative issues
+
+**Typically does not include:** Monetary claims
+
+</Expandable>
+
+## Query Examples
+
+### Create a Complaint
+
+```javascript
+const complaint = await prisma.complaint.create({
+  data: {
+    name: "Juan Carlos Rodríguez López",
+    documentType: "DNI",
+    documentNumber: "12345678",
+    address: "Av. Arequipa 1234, Miraflores, Lima",
+    phone: "+51987654321",
+    email: "juan.rodriguez@example.com",
+    isMinor: false,
+    guardianName: "",
+    type: "reclamo",
+    serviceDescription: "Servicio de desarrollo web",
+    amountClaimed: 3500.00,
+    detail: "Errores en la programación",
+    consumerRequest: "Corrección sin costo adicional"
+  }
+});
+```
+
+### Get Pending Complaints
+
+```javascript
+const pendingComplaints = await prisma.complaint.findMany({
+  where: { status: 'pending' },
+  orderBy: { createdAt: 'asc' }
+});
+```
+
+### Get Complaints Near 30-Day Deadline
+
+```javascript
+const thirtyDaysAgo = new Date();
+thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+const urgentComplaints = await prisma.complaint.findMany({
+  where: {
+    status: 'pending',
+    createdAt: { lte: thirtyDaysAgo }
+  },
+  orderBy: { createdAt: 'asc' }
+});
+```
+
+### Update Complaint Status
+
+```javascript
+await prisma.complaint.update({
+  where: { id: 123 },
+  data: { 
+    status: 'resolved',
+    read: true 
+  }
+});
+```
+
+## Relationships
+
+The `Complaint` model has no relationships with other models. It's a standalone legal compliance table.
+
+## Implementation Reference
+
+Source files:
+- Schema: `prisma/schema.prisma:64-84`
+- API Controller: `src/controllers/complaintsController.js:34-50`
+- Validation: `src/controllers/complaintsController.js:5-19`

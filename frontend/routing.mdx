@@ -1,0 +1,421 @@
+---
+title: Routing System
+description: Multi-language routing setup with React Router 7
+---
+
+# Routing System
+
+The Enigma Developers frontend uses React Router 7 with a custom multi-language routing system that supports both Spanish (default) and English.
+
+## Route Structure
+
+Routes are defined in `src/App.jsx` using React Router's declarative routing:
+
+```jsx
+import { Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
+
+// Eager-loaded (immediate)
+import Home from "./pages/Home.jsx";
+
+// Lazy-loaded (code-split)
+const ServicesPage = lazy(() => import("./pages/ServicesPage.jsx"));
+const PlansPage = lazy(() => import("./pages/PlansPage.jsx"));
+const About = lazy(() => import("./pages/About.jsx"));
+const Contact = lazy(() => import("./pages/Contact.jsx"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.jsx"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService.jsx"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy.jsx"));
+const ClientsPage = lazy(() => import("./pages/ClientsPage.jsx"));
+const ComplaintBook = lazy(() => import("./pages/ComplaintBook.jsx"));
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Spanish routes (default) */}
+      <Route path="/" element={<Home />} />
+      <Route path="/servicios" element={<ServicesPage />} />
+      <Route path="/planes" element={<PlansPage />} />
+      <Route path="/clientes" element={<ClientsPage />} />
+      <Route path="/nosotros" element={<About />} />
+      <Route path="/contacto" element={<Contact />} />
+      <Route path="/privacidad" element={<PrivacyPolicy />} />
+      <Route path="/terminos" element={<TermsOfService />} />
+      <Route path="/cookies" element={<CookiePolicy />} />
+      <Route path="/libro-reclamaciones" element={<ComplaintBook />} />
+
+      {/* English routes */}
+      <Route path="/en" element={<Home />} />
+      <Route path="/en/services" element={<ServicesPage />} />
+      <Route path="/en/plans" element={<PlansPage />} />
+      <Route path="/en/clients" element={<ClientsPage />} />
+      <Route path="/en/about" element={<About />} />
+      <Route path="/en/contact" element={<Contact />} />
+      <Route path="/en/privacy" element={<PrivacyPolicy />} />
+      <Route path="/en/terms" element={<TermsOfService />} />
+      <Route path="/en/cookies" element={<CookiePolicy />} />
+    </Routes>
+  );
+}
+```
+
+<Note>
+  Notice that the **same page component** is used for both languages. The language is determined from the URL path, and the component uses the `useT` hook to display the appropriate translations.
+</Note>
+
+## Route Map Configuration
+
+Routes are centrally configured in `src/i18n/routes.js`:
+
+```javascript
+export const ROUTE_MAP = {
+  es: {
+    home: "/",
+    services: "/servicios",
+    plans: "/planes",
+    clients: "/clientes",
+    about: "/nosotros",
+    contact: "/contacto",
+    privacy: "/privacidad",
+    terms: "/terminos",
+    cookies: "/cookies",
+    complaints: "/libro-reclamaciones",
+  },
+  en: {
+    home: "/en",
+    services: "/en/services",
+    plans: "/en/plans",
+    clients: "/en/clients",
+    about: "/en/about",
+    contact: "/en/contact",
+    privacy: "/en/privacy",
+    terms: "/en/terms",
+    cookies: "/en/cookies",
+  },
+};
+```
+
+<Warning>
+  The **Complaint Book** (`/libro-reclamaciones`) is only available in Spanish as it's a legal requirement specific to Peru.
+</Warning>
+
+## Lazy Loading with Suspense
+
+The app uses React's lazy loading to split code by route:
+
+```jsx
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-10 h-10 border-3 border-line border-t-red rounded-full animate-spin" />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <div className="flex flex-col min-h-screen">
+        <ScrollToTop />
+        <Navbar />
+        <main className="flex-1">
+          <Suspense fallback={<LoadingFallback />}>
+            <AppRoutes />
+          </Suspense>
+        </main>
+        <Footer />
+      </div>
+    </LanguageProvider>
+  );
+}
+```
+
+**Why Home is NOT lazy-loaded**:
+
+```jsx
+// Home is imported directly (eager-loaded)
+import Home from "./pages/Home.jsx";
+
+// Other pages are lazy-loaded
+const ServicesPage = lazy(() => import("./pages/ServicesPage.jsx"));
+```
+
+<Accordion title="Why is Home eager-loaded?">
+  The Home page is the main landing page and should load as fast as possible. Lazy loading would add an extra network request and delay, which is undesirable for the first page users see.
+</Accordion>
+
+## Automatic Scroll to Top
+
+The app automatically scrolls to top on route changes:
+
+```jsx
+import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+}
+
+// Used in App.jsx
+<ScrollToTop />
+<Navbar />
+<main>...</main>
+```
+
+## Route Utilities
+
+The `routes.js` file provides helper functions:
+
+### getLangFromPath
+
+Detects language from URL path:
+
+```javascript
+export function getLangFromPath(pathname) {
+  return pathname === "/en" || pathname.startsWith("/en/") ? "en" : "es";
+}
+
+// Examples:
+getLangFromPath("/") // "es"
+getLangFromPath("/servicios") // "es"
+getLangFromPath("/en") // "en"
+getLangFromPath("/en/services") // "en"
+```
+
+### localePath
+
+Generates path for a given route key and language:
+
+```javascript
+export function localePath(key, lang) {
+  return ROUTE_MAP[lang]?.[key] ?? ROUTE_MAP["es"][key] ?? "/";
+}
+
+// Examples:
+localePath("services", "es") // "/servicios"
+localePath("services", "en") // "/en/services"
+localePath("about", "es") // "/nosotros"
+localePath("about", "en") // "/en/about"
+```
+
+### getEquivalentPath
+
+Finds equivalent path in target language:
+
+```javascript
+export function getEquivalentPath(currentPath, targetLang) {
+  const [pathWithoutHash, hash] = currentPath.split("#");
+  const hashSuffix = hash ? `#${hash}` : "";
+
+  const sourceLang = getLangFromPath(pathWithoutHash);
+  const sourceRoutes = ROUTE_MAP[sourceLang];
+  const targetRoutes = ROUTE_MAP[targetLang];
+
+  const matchedKey = Object.keys(sourceRoutes).find(
+    (key) => sourceRoutes[key] === pathWithoutHash
+  );
+
+  if (matchedKey && targetRoutes[matchedKey]) {
+    return targetRoutes[matchedKey] + hashSuffix;
+  }
+
+  return (ROUTE_MAP[targetLang].home ?? "/") + hashSuffix;
+}
+
+// Examples:
+getEquivalentPath("/servicios", "en") // "/en/services"
+getEquivalentPath("/en/about", "es") // "/nosotros"
+getEquivalentPath("/servicios#web", "en") // "/en/services#web"
+```
+
+<Note>
+  The `getEquivalentPath` function preserves URL hash fragments (e.g., `#desarrollo-web`) when switching languages.
+</Note>
+
+## Language Switching
+
+Language switching is handled by the `LanguageContext`:
+
+```jsx
+function setLang(targetLang) {
+  if (targetLang === lang) return;
+  
+  localStorage.setItem("enigma-lang", targetLang);
+  const currentFull = location.pathname + (location.hash || "");
+  const equivalent = getEquivalentPath(currentFull, targetLang);
+  
+  setLangState(targetLang);
+  document.documentElement.lang = targetLang;
+  navigate(equivalent);
+}
+```
+
+**Flow**:
+1. User clicks language switcher (ES/EN)
+2. `setLang` is called with target language
+3. Preference is saved to localStorage
+4. Current path is converted to equivalent in target language
+5. User is navigated to the new path
+6. HTML `lang` attribute is updated
+
+## SEO: Hreflang Tags
+
+The app automatically generates hreflang tags for multi-language SEO:
+
+```jsx
+function HreflangTags() {
+  const { pathname } = useLocation();
+  const { lang } = useT();
+
+  const pathWithoutHash = pathname.split("#")[0];
+  const esRoutes = ROUTE_MAP.es;
+  const enRoutes = ROUTE_MAP.en;
+
+  const routeKey = Object.keys(lang === "en" ? enRoutes : esRoutes).find(
+    (k) => (lang === "en" ? enRoutes : esRoutes)[k] === pathWithoutHash
+  );
+
+  if (!routeKey) return null;
+
+  const esPath = esRoutes[routeKey];
+  const enPath = enRoutes[routeKey];
+
+  return (
+    <>
+      <link rel="alternate" hrefLang="es" href={`https://enigmasac.com${esPath}`} />
+      <link rel="alternate" hrefLang="en" href={`https://enigmasac.com${enPath}`} />
+      <link rel="alternate" hrefLang="x-default" href={`https://enigmasac.com${esPath}`} />
+    </>
+  );
+}
+```
+
+## Breadcrumb Schema
+
+Automatic JSON-LD breadcrumb generation for SEO:
+
+```jsx
+function BreadcrumbSchema() {
+  const { pathname } = useLocation();
+  const { lang, t } = useT();
+
+  const pathWithoutHash = pathname.split("#")[0];
+  const routes = ROUTE_MAP[lang];
+  const routeKey = Object.keys(routes).find((k) => routes[k] === pathWithoutHash);
+
+  if (!routeKey || routeKey === "home") return null;
+
+  const labelMap = {
+    services: "nav.services",
+    plans: "nav.plans",
+    clients: "nav.clients",
+    about: "nav.about",
+    contact: "nav.contact",
+    privacy: "footer.privacy",
+    terms: "footer.terms",
+    cookies: "footer.cookiePolicy",
+    complaints: "footer.complaints",
+  };
+
+  const label = t(labelMap[routeKey] || routeKey);
+  const breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Enigma Developers", 
+        item: `https://enigmasac.com${lang === "en" ? "/en" : "/"}` },
+      { "@type": "ListItem", position: 2, name: label, 
+        item: `https://enigmasac.com${pathWithoutHash}` },
+    ],
+  };
+
+  return (
+    <script type="application/ld+json" 
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+  );
+}
+```
+
+## Adding New Routes
+
+To add a new route:
+
+<Steps>
+  <Step title="Add to ROUTE_MAP">
+    Edit `src/i18n/routes.js`:
+    ```javascript
+    export const ROUTE_MAP = {
+      es: {
+        // ... existing routes
+        blog: "/blog",
+      },
+      en: {
+        // ... existing routes
+        blog: "/en/blog",
+      },
+    };
+    ```
+  </Step>
+  
+  <Step title="Create Page Component">
+    Create `src/pages/Blog.jsx`:
+    ```jsx
+    import { useT } from "../i18n/LanguageContext.jsx";
+    
+    export default function Blog() {
+      const { t } = useT();
+      return (
+        <div>
+          <h1>{t("blog.title")}</h1>
+          {/* page content */}
+        </div>
+      );
+    }
+    ```
+  </Step>
+  
+  <Step title="Add Routes in App.jsx">
+    ```jsx
+    const Blog = lazy(() => import("./pages/Blog.jsx"));
+    
+    function AppRoutes() {
+      return (
+        <Routes>
+          {/* ... existing routes */}
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/en/blog" element={<Blog />} />
+        </Routes>
+      );
+    }
+    ```
+  </Step>
+  
+  <Step title="Add Translations">
+    Add to `src/i18n/locales/es.json` and `en.json`:
+    ```json
+    {
+      "blog": {
+        "title": "Blog",
+        // ... more translations
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Internationalization" icon="globe" href="/frontend/internationalization">
+    Learn about the translation system
+  </Card>
+  <Card title="Components" icon="cube" href="/frontend/components">
+    Explore reusable components
+  </Card>
+</CardGroup>

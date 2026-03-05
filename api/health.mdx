@@ -1,0 +1,130 @@
+---
+title: 'GET /api/health'
+description: 'Health check endpoint for monitoring'
+---
+
+## Endpoint
+
+```
+GET /api/health
+```
+
+Simple health check endpoint to verify that the API server is running and responsive. This endpoint is commonly used by monitoring tools, load balancers, and uptime services.
+
+## Response
+
+<ResponseField name="status" type="string">
+  Always returns `"ok"` when the server is healthy
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.enigmadevelopers.pe/api/health
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.enigmadevelopers.pe/api/health');
+const data = await response.json();
+console.log(data);
+// Output: { status: 'ok' }
+```
+
+```python Python
+import requests
+
+response = requests.get('https://api.enigmadevelopers.pe/api/health')
+data = response.json()
+print(data)
+# Output: {'status': 'ok'}
+```
+
+</CodeGroup>
+
+## Example Response
+
+### Success (200 OK)
+
+```json
+{
+  "status": "ok"
+}
+```
+
+## Usage
+
+### Monitoring Tools
+
+This endpoint is ideal for:
+- **Uptime monitors** (UptimeRobot, Pingdom, etc.)
+- **Load balancer health checks** (AWS ELB, nginx, etc.)
+- **Container orchestration** (Kubernetes liveness/readiness probes)
+- **Status page integrations**
+
+### Kubernetes Example
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 4000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 4000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+```
+
+### Docker Compose Example
+
+```yaml
+services:
+  api:
+    image: enigma-api:latest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
+
+## Characteristics
+
+- **No Authentication Required**: Public endpoint, no API key needed
+- **No Rate Limiting**: Exempt from the standard 50 req/15min rate limit to ensure reliable monitoring
+- **Fast Response**: Returns immediately without database queries
+- **Always Available**: Does not depend on external services
+
+## What This Endpoint Checks
+
+The `/api/health` endpoint verifies:
+- ✅ Express server is running
+- ✅ Node.js process is responsive
+- ✅ HTTP server can accept connections
+
+What it does **NOT** check:
+- ❌ Database connectivity (PostgreSQL)
+- ❌ Email service availability
+- ❌ Memory or CPU usage
+
+<Note>
+For a more comprehensive health check that includes database connectivity, consider implementing a `/api/health/deep` endpoint that runs `await prisma.$queryRaw`SELECT 1`` to verify PostgreSQL is accessible.
+</Note>
+
+## Implementation Reference
+
+Source file:
+- Implementation: `src/index.js:47-49`
+
+```javascript
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+```

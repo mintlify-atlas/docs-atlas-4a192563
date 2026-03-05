@@ -1,0 +1,386 @@
+---
+title: 'Post Model'
+description: 'Database schema for blog posts and articles'
+---
+
+## Overview
+
+The `Post` model stores blog posts and articles for the Enigma Developers website. This model supports draft/published states, categories, and includes SEO-friendly fields like slugs and excerpts.
+
+## Prisma Schema
+
+```prisma
+model Post {
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(300)
+  slug        String    @unique @db.VarChar(300)
+  excerpt     String    @default("") @db.VarChar(500)
+  content     String    @db.Text
+  coverImage  String    @default("") @map("cover_image") @db.VarChar(500)
+  published   Boolean   @default(false)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  categoryId  Int?      @map("category_id")
+  category    Category? @relation(fields: [categoryId], references: [id])
+
+  @@map("posts")
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(100)
+  slug  String @unique @db.VarChar(100)
+  posts Post[]
+
+  @@map("categories")
+}
+```
+
+## Fields
+
+### Identification
+
+<ResponseField name="id" type="Int">
+  **Primary Key**: Auto-incrementing unique identifier
+  
+  Automatically generated when a post is created
+</ResponseField>
+
+<ResponseField name="slug" type="String">
+  URL-friendly unique identifier
+  
+  - **Type:** VARCHAR(300)
+  - **Required:** Yes
+  - **Unique:** Must be unique across all posts
+  - **Format:** Lowercase, hyphen-separated (e.g., `"mejores-practicas-react-2026"`)
+  - **Usage:** Used in URLs: `/blog/mejores-practicas-react-2026`
+</ResponseField>
+
+### Content Fields
+
+<ResponseField name="title" type="String">
+  Post title or headline
+  
+  - **Type:** VARCHAR(300)
+  - **Required:** Yes
+  - **Validation:** Maximum 300 characters
+</ResponseField>
+
+<ResponseField name="excerpt" type="String">
+  Short summary or preview of the post
+  
+  - **Type:** VARCHAR(500)
+  - **Required:** No
+  - **Default:** Empty string
+  - **Usage:** Shown in blog listings, meta descriptions
+</ResponseField>
+
+<ResponseField name="content" type="String">
+  Full post content (HTML or Markdown)
+  
+  - **Type:** TEXT
+  - **Required:** Yes
+  - **Format:** Can contain HTML, Markdown, or plain text
+</ResponseField>
+
+<ResponseField name="coverImage" type="String">
+  URL or path to the post's cover/featured image
+  
+  - **Type:** VARCHAR(500)
+  - **Required:** No
+  - **Default:** Empty string
+  - **Column Name:** `cover_image`
+  - **Format:** Relative path (e.g., `/images/posts/cover-123.jpg`) or full URL
+</ResponseField>
+
+### Publishing Status
+
+<ResponseField name="published" type="Boolean">
+  Whether the post is publicly visible
+  
+  - **Type:** BOOLEAN
+  - **Default:** `false`
+  - **Usage:**
+    - `true`: Post is live and visible to public
+    - `false`: Draft mode, only visible to admins
+</ResponseField>
+
+<ResponseField name="publishedAt" type="DateTime">
+  Timestamp when the post was published
+  
+  - **Type:** TIMESTAMP (nullable)
+  - **Default:** `null`
+  - **Column Name:** `published_at`
+  - **Usage:** Set when `published` changes from `false` to `true`
+</ResponseField>
+
+### Timestamps
+
+<ResponseField name="createdAt" type="DateTime">
+  When the post was first created (as draft or published)
+  
+  - **Type:** TIMESTAMP
+  - **Default:** Current timestamp
+  - **Column Name:** `created_at`
+</ResponseField>
+
+<ResponseField name="updatedAt" type="DateTime">
+  When the post was last modified
+  
+  - **Type:** TIMESTAMP
+  - **Auto-updated:** Yes (Prisma @updatedAt)
+  - **Column Name:** `updated_at`
+</ResponseField>
+
+### Relationships
+
+<ResponseField name="categoryId" type="Int">
+  Foreign key to the Category table
+  
+  - **Type:** INT (nullable)
+  - **Required:** No
+  - **Column Name:** `category_id`
+  - **References:** `categories.id`
+</ResponseField>
+
+<ResponseField name="category" type="Category">
+  Related Category object
+  
+  - **Type:** Category relation
+  - **Nullable:** Yes (posts can exist without a category)
+  - **Access:** Use Prisma `include` to fetch category data
+</ResponseField>
+
+## Database Table
+
+**Table Name:** `posts`
+
+## Related: Category Model
+
+### Category Fields
+
+<ResponseField name="id" type="Int">
+  Category unique identifier
+</ResponseField>
+
+<ResponseField name="name" type="String">
+  Display name of the category
+  
+  - **Type:** VARCHAR(100)
+  - **Unique:** Yes
+  - **Example:** "Desarrollo Web", "Seguridad", "DevOps"
+</ResponseField>
+
+<ResponseField name="slug" type="String">
+  URL-friendly category identifier
+  
+  - **Type:** VARCHAR(100)
+  - **Unique:** Yes
+  - **Example:** "desarrollo-web", "seguridad", "devops"
+</ResponseField>
+
+<ResponseField name="posts" type="Post[]">
+  Array of posts in this category
+  
+  - **Type:** Post[] relation
+  - **Usage:** One-to-many relationship
+</ResponseField>
+
+**Category Table Name:** `categories`
+
+## Example Records
+
+### Draft Post
+
+```json
+{
+  "id": 1,
+  "title": "Mejores prácticas de React en 2026",
+  "slug": "mejores-practicas-react-2026",
+  "excerpt": "Descubre las técnicas más actuales para desarrollar aplicaciones React modernas y escalables",
+  "content": "<p>React ha evolucionado significativamente...</p>",
+  "coverImage": "/images/posts/react-2026.jpg",
+  "published": false,
+  "publishedAt": null,
+  "createdAt": "2026-03-01T10:00:00.000Z",
+  "updatedAt": "2026-03-04T15:30:00.000Z",
+  "categoryId": 1,
+  "category": {
+    "id": 1,
+    "name": "Desarrollo Web",
+    "slug": "desarrollo-web"
+  }
+}
+```
+
+### Published Post
+
+```json
+{
+  "id": 2,
+  "title": "Cómo proteger tu servidor Linux",
+  "slug": "como-proteger-servidor-linux",
+  "excerpt": "Guía completa para asegurar tu servidor Linux contra amenazas comunes",
+  "content": "<h2>Introducción</h2><p>La seguridad del servidor...</p>",
+  "coverImage": "/images/posts/linux-security.jpg",
+  "published": true,
+  "publishedAt": "2026-02-15T08:00:00.000Z",
+  "createdAt": "2026-02-10T12:00:00.000Z",
+  "updatedAt": "2026-02-15T08:00:00.000Z",
+  "categoryId": 2,
+  "category": {
+    "id": 2,
+    "name": "Seguridad",
+    "slug": "seguridad"
+  }
+}
+```
+
+## Relationships Explained
+
+### One-to-Many: Category → Posts
+
+A category can have many posts, but each post belongs to only one category (or none).
+
+```javascript
+// Get category with all its posts
+const category = await prisma.category.findUnique({
+  where: { slug: 'desarrollo-web' },
+  include: { posts: true }
+});
+
+// Get post with its category
+const post = await prisma.post.findUnique({
+  where: { slug: 'mejores-practicas-react-2026' },
+  include: { category: true }
+});
+```
+
+## Query Examples
+
+### Create a Draft Post
+
+```javascript
+const post = await prisma.post.create({
+  data: {
+    title: "Mejores prácticas de React en 2026",
+    slug: "mejores-practicas-react-2026",
+    excerpt: "Descubre las técnicas más actuales...",
+    content: "<p>React ha evolucionado...</p>",
+    coverImage: "/images/posts/react-2026.jpg",
+    categoryId: 1
+  }
+});
+```
+
+### Publish a Post
+
+```javascript
+await prisma.post.update({
+  where: { id: 1 },
+  data: {
+    published: true,
+    publishedAt: new Date()
+  }
+});
+```
+
+### Get All Published Posts
+
+```javascript
+const publishedPosts = await prisma.post.findMany({
+  where: { published: true },
+  include: { category: true },
+  orderBy: { publishedAt: 'desc' }
+});
+```
+
+### Get Posts by Category
+
+```javascript
+const posts = await prisma.post.findMany({
+  where: {
+    published: true,
+    category: {
+      slug: 'desarrollo-web'
+    }
+  },
+  orderBy: { publishedAt: 'desc' }
+});
+```
+
+### Search Posts by Title
+
+```javascript
+const results = await prisma.post.findMany({
+  where: {
+    published: true,
+    title: {
+      contains: 'React',
+      mode: 'insensitive'
+    }
+  }
+});
+```
+
+### Create a Category
+
+```javascript
+const category = await prisma.category.create({
+  data: {
+    name: "Desarrollo Web",
+    slug: "desarrollo-web"
+  }
+});
+```
+
+## Common Use Cases
+
+### Blog Listing Page
+
+```javascript
+const posts = await prisma.post.findMany({
+  where: { published: true },
+  select: {
+    id: true,
+    title: true,
+    slug: true,
+    excerpt: true,
+    coverImage: true,
+    publishedAt: true,
+    category: {
+      select: {
+        name: true,
+        slug: true
+      }
+    }
+  },
+  orderBy: { publishedAt: 'desc' },
+  take: 10
+});
+```
+
+### Single Post Page
+
+```javascript
+const post = await prisma.post.findUnique({
+  where: { slug: params.slug },
+  include: { category: true }
+});
+
+if (!post || !post.published) {
+  throw new Error('Post not found');
+}
+```
+
+## Implementation Reference
+
+Source files:
+- Schema: `prisma/schema.prisma:38-62`
+- Post model: Lines 38-53
+- Category model: Lines 55-62
+
+<Note>
+While the `Post` and `Category` models are defined in the schema, there are currently no API endpoints implemented for managing blog content. These models are likely used by a separate CMS or admin panel.
+</Note>

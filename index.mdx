@@ -1,97 +1,78 @@
 ---
 title: "Introduction"
-description: "Welcome to the new home for your documentation"
+description: "Full-stack corporate website for IT services company providing web development, cloud hosting, cybersecurity, and AI solutions to SMEs."
 ---
 
-## Setting up
+# Welcome to Enigma Developers
 
-Get your documentation site up and running in minutes.
+Enigma Developers is a full-stack web application built for a comprehensive IT services company. This documentation covers the architecture, setup, and API reference for the corporate website platform.
+
+## Core Features
+
+<CardGroup cols={2}>
+  <Card title="React 19 Frontend" icon="react" href="/frontend/overview">
+    Modern React application with Vite, Motion animations, and Tailwind CSS
+  </Card>
+  <Card title="Express Backend" icon="server" href="/backend/overview">
+    Node.js API with Prisma ORM and PostgreSQL database
+  </Card>
+  <Card title="Multi-language Support" icon="language" href="/frontend/internationalization">
+    Spanish and English localization with dynamic routing
+  </Card>
+  <Card title="Docker Deployment" icon="docker" href="/deployment/docker">
+    Containerized architecture with Nginx reverse proxy
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+Get up and running with the Enigma Developers platform in minutes.
 
 <Card
-  title="Start here"
+  title="Quickstart Guide"
   icon="rocket"
   href="/quickstart"
   horizontal
 >
-  Follow our three step quickstart guide.
+  Follow the step-by-step guide to set up your local development environment.
 </Card>
 
-## Make it yours
+## Architecture Overview
 
-Design a docs site that looks great and empowers your users.
+The application uses a modern full-stack architecture:
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+- **Frontend**: React 19 + Vite 6 + Tailwind CSS 4 + Motion (Framer)
+- **Backend**: Express 5 + Prisma 6 + Zod validation + Nodemailer
+- **Database**: PostgreSQL 16
+- **Infrastructure**: Docker Compose + Nginx reverse proxy
 
-## Create beautiful pages
+## Key Capabilities
 
-Everything you need to create world-class documentation.
+<CardGroup cols={2}>
+  <Card title="Contact & Lead Management" icon="envelope" href="/api/contact">
+    Capture and process customer inquiries and lead generation requests
+  </Card>
+  <Card title="INDECOPI Complaint Book" icon="book" href="/api/complaints">
+    Legal compliance with Peru's consumer protection requirements
+  </Card>
+  <Card title="Email Notifications" icon="paper-plane" href="/backend/email">
+    Automated email delivery via Nodemailer with SMTP configuration
+  </Card>
+  <Card title="Rate Limiting & Security" icon="shield" href="/backend/api-endpoints">
+    Built-in protection with Helmet and express-rate-limit
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Explore the Documentation
 
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<CardGroup cols={3}>
+  <Card title="Frontend Guide" icon="palette" href="/frontend/overview">
+    Learn about components, routing, and styling
+  </Card>
+  <Card title="Backend Guide" icon="database" href="/backend/overview">
+    Understand the API structure and database models
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/contact">
+    Complete endpoint documentation with examples
+  </Card>
+</CardGroup>
