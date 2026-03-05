@@ -1,0 +1,95 @@
+{
+  "projectType": "saas",
+  "projectName": "Enigma Developers",
+  "projectDescription": "Full-stack corporate website for IT services company providing web development, cloud hosting, cybersecurity, and AI solutions to SMEs.",
+  "theme": "almond",
+  "primaryColor": "#C44A20",
+  "lightColor": "#F0EDE6",
+  "darkColor": "#1C1C1E",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "Frontend",
+            "pages": [
+              "frontend/overview",
+              "frontend/components",
+              "frontend/routing",
+              "frontend/internationalization",
+              "frontend/styling"
+            ]
+          },
+          {
+            "group": "Backend",
+            "pages": [
+              "backend/overview",
+              "backend/database",
+              "backend/api-endpoints",
+              "backend/email"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/environment",
+              "deployment/production"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/contact",
+              "api/leads",
+              "api/complaints",
+              "api/health"
+            ]
+          },
+          {
+            "group": "Data Models",
+            "pages": [
+              "api/models/contact",
+              "api/models/lead",
+              "api/models/complaint",
+              "api/models/post"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Full-stack React + Express architecture",
+    "Multi-language support (Spanish/English)",
+    "Dockerized deployment with Nginx reverse proxy",
+    "PostgreSQL database with Prisma ORM",
+    "Contact forms and lead generation",
+    "INDECOPI-compliant complaint book",
+    "Email notifications via Nodemailer",
+    "Rate limiting and security headers"
+  ],
+  "publicApiSurface": [
+    "POST /api/contact - Submit contact form",
+    "POST /api/leads - Submit free diagnosis request",
+    "POST /api/complaints - Submit complaint (INDECOPI)",
+    "GET /api/health - Health check endpoint",
+    "React components: Hero, Navbar, Footer, Services, Plans, Clients",
+    "i18n utilities: LanguageContext, LocaleLink, useT hook",
+    "Custom hooks: useTextDecrypt, useStickyScroll, useCountUp, use3DTilt"
+  ]
+}
